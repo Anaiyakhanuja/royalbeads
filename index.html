@@ -2407,7 +2407,6 @@ function showAppErr(msg){
 }
 
 function submitApplication(){
-  // Read inputs defensively
   function val(id){ var el = document.getElementById(id); return el ? (el.value||'').trim() : ''; }
   var first    = val('appFirstName');
   var last     = val('appLastName');
@@ -2421,51 +2420,59 @@ function submitApplication(){
   if (!bracelet) return showAppErr('Please tell us what type of bracelet you would make.');
   if (!contact)  return showAppErr('Please share contact info so we can reach you.');
 
-  // Save locally + Firestore (best-effort)
+  // 1. Save to local + Firestore (never blocks email)
   try {
     if (typeof jobApplications === 'undefined') window.jobApplications = [];
     var submission = { firstName:first, lastName:last, age:age, braceletType:bracelet, contact:contact, submittedAt:new Date().toISOString() };
     jobApplications.push(submission);
     if (typeof saveData === 'function') saveData('jobApplications', jobApplications);
     if (typeof db !== 'undefined') db.collection('jobApplications').add(submission).catch(function(){});
-  } catch(e) { console.warn('local/firestore save failed', e); }
+  } catch(e) {}
 
-  // EMAIL to anaiya.khanuja@gmail.com via hidden-form POST (same approach as orders — proven to work)
+  // 2. ALSO try FormSubmit (silent, works if activated for royalbeads.co)
   try {
     var iframe = document.getElementById('appFormFrame') || document.createElement('iframe');
     iframe.id = 'appFormFrame'; iframe.name = 'appFormFrame'; iframe.style.display = 'none';
     if (!iframe.parentNode) document.body.appendChild(iframe);
-
-    var form = document.createElement('form');
-    form.method = 'POST';
-    form.action = 'https://formsubmit.co/anaiya.khanuja@gmail.com';
-    form.target = 'appFormFrame';
-    form.style.display = 'none';
-
-    var fields = {
+    var hForm = document.createElement('form');
+    hForm.method = 'POST';
+    hForm.action = 'https://formsubmit.co/anaiya.khanuja@gmail.com';
+    hForm.target = 'appFormFrame';
+    hForm.style.display = 'none';
+    var fsFields = {
       _subject: 'New Royal Beads Application — ' + first + ' ' + last,
-      _template: 'table',
-      _captcha: 'false',
-      'First Name': first,
-      'Last Name': last,
-      'Age': age,
-      'Type of Bracelet': bracelet,
-      'Contact Info': contact,
+      _template: 'table', _captcha: 'false',
+      'First Name': first, 'Last Name': last, 'Age': age,
+      'Type of Bracelet': bracelet, 'Contact Info': contact,
       'Submitted At': new Date().toLocaleString()
     };
-    for (var k in fields) {
-      if (Object.prototype.hasOwnProperty.call(fields, k)) {
-        var inp = document.createElement('input');
-        inp.type = 'hidden'; inp.name = k; inp.value = fields[k];
-        form.appendChild(inp);
-      }
+    for (var k in fsFields) {
+      var inp = document.createElement('input');
+      inp.type = 'hidden'; inp.name = k; inp.value = fsFields[k];
+      hForm.appendChild(inp);
     }
-    document.body.appendChild(form);
-    form.submit();
-    setTimeout(function(){ try { document.body.removeChild(form); } catch(e){} }, 2000);
-  } catch(e) { console.warn('email send failed', e); }
+    document.body.appendChild(hForm);
+    hForm.submit();
+    setTimeout(function(){ try { document.body.removeChild(hForm); } catch(e){} }, 2000);
+  } catch(e) {}
 
-  // Show thank-you view (defensive: don't crash if elements missing)
+  // 3. GUARANTEED PATH: open applicant's mail app addressed to anaiya.khanuja@gmail.com.
+  //    They just hit Send in their mail app — email arrives reliably.
+  try {
+    var subject = 'Royal Beads Application — ' + first + ' ' + last;
+    var body = 'Hi Anaiya!\n\nI would like to apply to work at Royal Beads.\n\n' +
+               '- First Name: ' + first + '\n' +
+               '- Last Name: '  + last  + '\n' +
+               '- Age: '        + age   + '\n' +
+               '- Type of Bracelet: ' + bracelet + '\n' +
+               '- Contact (phone or email): ' + contact + '\n\n' +
+               'Thanks!\n' + first;
+    var mailtoUrl = 'mailto:anaiya.khanuja@gmail.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
+    window._lastApplicationMailto = mailtoUrl;
+    window.location.href = mailtoUrl;
+  } catch(e) {}
+
+  // 4. Show thank-you view
   var fv = document.getElementById('applyFormView');
   var tv = document.getElementById('applyThankView');
   var tt = document.getElementById('thankYouText');
