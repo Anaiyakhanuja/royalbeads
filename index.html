@@ -2413,10 +2413,7 @@ function submitApplication(){
     const ageEl   = document.getElementById('appAge');
     const braEl   = document.getElementById('appBracelet');
     const conEl   = document.getElementById('appContact');
-    if (!firstEl || !lastEl || !ageEl || !braEl || !conEl) {
-      alert('Form is missing fields. Please refresh the page and try again.');
-      return;
-    }
+    if (!firstEl || !lastEl || !ageEl || !braEl || !conEl) { alert('Form is missing fields. Please refresh.'); return; }
     const first    = firstEl.value.trim();
     const last     = lastEl.value.trim();
     const age      = ageEl.value.trim();
@@ -2429,57 +2426,36 @@ function submitApplication(){
     if (!bracelet) return showAppErr('Please tell us what type of bracelet you would make.');
     if (!contact)  return showAppErr('Please share contact info so we can reach you.');
 
-    const submission = {
-      firstName: first, lastName: last, age: age,
-      braceletType: bracelet, contact: contact,
-      submittedAt: new Date().toISOString()
-    };
+    const submission = { firstName: first, lastName: last, age: age, braceletType: bracelet, contact: contact, submittedAt: new Date().toISOString() };
 
-    // 1. Local copy
-    try {
-      if (typeof jobApplications === 'undefined') { window.jobApplications = []; }
-      jobApplications.push(submission);
-      if (typeof saveData === 'function') saveData('jobApplications', jobApplications);
-    } catch(e) { console.warn('localStorage save failed', e); }
+    try { if (typeof jobApplications === 'undefined') window.jobApplications = []; jobApplications.push(submission); if (typeof saveData === 'function') saveData('jobApplications', jobApplications); } catch(e) { console.warn('local save failed', e); }
+    try { if (typeof db !== 'undefined') db.collection('jobApplications').add(submission).catch(err => console.warn('Firestore failed', err)); } catch(e) {}
 
-    // 2. Firestore copy
+    // Email to anaiya.khanuja@gmail.com via FormSubmit (no backend needed)
     try {
-      if (typeof db !== 'undefined') {
-        db.collection('jobApplications').add(submission).catch(err => console.warn('Firestore save failed', err));
-      }
-    } catch(e) { console.warn('Firestore call failed', e); }
-
-    // 3. Email to anaiya.khanuja@gmail.com via FormSubmit
-    try {
-      fetch("https://formsubmit.co/ajax/anaiya.khanuja@gmail.com", {
-        method: "POST",
-        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      fetch('https://formsubmit.co/ajax/anaiya.khanuja@gmail.com', {
+        method:'POST',
+        headers:{'Content-Type':'application/json','Accept':'application/json'},
         body: JSON.stringify({
-          _subject: "New Royal Beads Application — " + first + " " + last,
-          _template: "table",
-          _captcha: "false",
-          "First Name": first,
-          "Last Name": last,
-          "Age": age,
-          "Type of Bracelet": bracelet,
-          "Contact Info": contact,
-          "Submitted At": new Date().toLocaleString()
+          _subject:'New Royal Beads Application — ' + first + ' ' + last,
+          _template:'table', _captcha:'false',
+          'First Name': first, 'Last Name': last, 'Age': age,
+          'Type of Bracelet': bracelet, 'Contact Info': contact,
+          'Submitted At': new Date().toLocaleString()
         })
-      }).catch(err => console.warn('Email send failed', err));
-    } catch(e) { console.warn('Email fetch call failed', e); }
+      }).catch(err => console.warn('email failed', err));
+    } catch(e) {}
 
-    // 4. Show thank-you view
     const formView  = document.getElementById('applyFormView');
     const thankView = document.getElementById('applyThankView');
     const thankText = document.getElementById('thankYouText');
     if (formView)  formView.style.display  = 'none';
     if (thankView) thankView.style.display = '';
     if (thankText) thankText.textContent = (typeof thankYouMsg === 'string' && thankYouMsg) ? thankYouMsg : 'Thank you! I will get back to you in a few days.';
-
     if (typeof renderAdminApplications === 'function') renderAdminApplications();
   } catch(err) {
     console.error('submitApplication crashed:', err);
-    alert('Something went wrong submitting your application. Please try again, or contact us directly.');
+    alert('Something went wrong. Please try again, or email anaiya.khanuja@gmail.com directly.');
   }
 }
 
@@ -2709,6 +2685,72 @@ renderAll();
     if(st[k+'_title']){ const el=document.getElementById('sec-'+k+'-title'); if(el) el.textContent=st[k+'_title']; }
     if(st[k+'_sub']){ const el=document.getElementById('sec-'+k+'-sub'); if(el) el.textContent=st[k+'_sub']; }
   });
+})();
+</script>
+
+<script>
+/* SAFETY NET — guarantees the application form works even if earlier JS errors. */
+(function(){
+  if (typeof window.showAppErr !== 'function') {
+    window.showAppErr = function(msg){
+      const e = document.getElementById('appErr');
+      if (e) { e.textContent = msg; e.style.display = 'block'; }
+      else alert(msg);
+    };
+  }
+  if (typeof window.resetApplyForm !== 'function') {
+    window.resetApplyForm = function(){
+      ['appFirstName','appLastName','appBracelet','appContact','appAge'].forEach(function(id){
+        const el = document.getElementById(id); if (el) el.value = '';
+      });
+      const err = document.getElementById('appErr'); if (err) { err.style.display='none'; err.textContent=''; }
+      const fv = document.getElementById('applyFormView');  if (fv) fv.style.display = '';
+      const tv = document.getElementById('applyThankView'); if (tv) tv.style.display = 'none';
+    };
+  }
+  if (typeof window.openApplyForm !== 'function') {
+    window.openApplyForm = function(){
+      const m = document.getElementById('hiringModal'); if (m) m.classList.remove('open');
+      const fv = document.getElementById('applyFormView');  if (fv) fv.style.display = '';
+      const tv = document.getElementById('applyThankView'); if (tv) tv.style.display = 'none';
+      const err = document.getElementById('appErr'); if (err) err.style.display = 'none';
+      const am = document.getElementById('applyModal'); if (am) am.classList.add('open');
+    };
+  }
+  if (typeof window.submitApplication !== 'function') {
+    window.submitApplication = function(){
+      try {
+        var first = (document.getElementById('appFirstName')||{}).value || '';
+        var last  = (document.getElementById('appLastName') ||{}).value || '';
+        var age   = (document.getElementById('appAge')      ||{}).value || '';
+        var brace = (document.getElementById('appBracelet') ||{}).value || '';
+        var cont  = (document.getElementById('appContact')  ||{}).value || '';
+        first = first.trim(); last = last.trim(); age = age.trim(); brace = brace.trim(); cont = cont.trim();
+        if (!first) return window.showAppErr('Please enter your first name.');
+        if (!last)  return window.showAppErr('Please enter your last name.');
+        if (!age)   return window.showAppErr('Please select your age.');
+        if (!brace) return window.showAppErr('Please tell us what type of bracelet you would make.');
+        if (!cont)  return window.showAppErr('Please share contact info so we can reach you.');
+        try {
+          fetch('https://formsubmit.co/ajax/anaiya.khanuja@gmail.com', {
+            method:'POST',
+            headers:{'Content-Type':'application/json','Accept':'application/json'},
+            body: JSON.stringify({
+              _subject:'New Royal Beads Application — ' + first + ' ' + last,
+              _template:'table', _captcha:'false',
+              'First Name': first, 'Last Name': last, 'Age': age,
+              'Type of Bracelet': brace, 'Contact Info': cont,
+              'Submitted At': new Date().toLocaleString()
+            })
+          });
+        } catch(e) {}
+        var fv = document.getElementById('applyFormView');  if (fv) fv.style.display = 'none';
+        var tv = document.getElementById('applyThankView'); if (tv) tv.style.display = '';
+      } catch(err) {
+        alert('Something went wrong. Email anaiya.khanuja@gmail.com directly.');
+      }
+    };
+  }
 })();
 </script>
 </body>
