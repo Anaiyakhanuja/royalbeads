@@ -859,7 +859,7 @@ footer strong{color:var(--blush);font-style:italic;font-family:'Playfair Display
       </div>
       <div id="appErr" style="display:none;background:rgba(168,74,37,.1);color:var(--rust);padding:10px 12px;border-radius:8px;font-size:.8rem;margin-bottom:12px;text-align:center;font-weight:500;"></div>
       <div style="display:flex;gap:10px;">
-        <button onclick="document.getElementById('applyModal').classList.remove('open');resetApplyForm();" style="flex:1;padding:12px 20px;border-radius:10px;border:1.5px solid rgba(42,26,16,.15);background:transparent;color:var(--mid);font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;">Cancel</button>
+        <button onclick="document.getElementById('applyModal').classList.remove('open');if(typeof resetApplyForm==='function')resetApplyForm();" style="flex:1;padding:12px 20px;border-radius:10px;border:1.5px solid rgba(42,26,16,.15);background:transparent;color:var(--mid);font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;">Cancel</button>
         <button onclick="submitApplication()" style="flex:2;padding:12px 20px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--sage),var(--tc));color:white;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;letter-spacing:1px;text-transform:uppercase;">Submit</button>
       </div>
     </div>
@@ -2408,77 +2408,34 @@ function showAppErr(msg){
 
 function submitApplication(){
   function val(id){ var el = document.getElementById(id); return el ? (el.value||'').trim() : ''; }
-  var first    = val('appFirstName');
-  var last     = val('appLastName');
-  var age      = val('appAge');
-  var bracelet = val('appBracelet');
-  var contact  = val('appContact');
-
+  var first = val('appFirstName'), last = val('appLastName'), age = val('appAge'), bracelet = val('appBracelet'), contact = val('appContact');
   if (!first)    return showAppErr('Please enter your first name.');
   if (!last)     return showAppErr('Please enter your last name.');
   if (!age)      return showAppErr('Please select your age.');
   if (!bracelet) return showAppErr('Please tell us what type of bracelet you would make.');
   if (!contact)  return showAppErr('Please share contact info so we can reach you.');
-
-  // 1. Save to local + Firestore (never blocks email)
   try {
     if (typeof jobApplications === 'undefined') window.jobApplications = [];
-    var submission = { firstName:first, lastName:last, age:age, braceletType:bracelet, contact:contact, submittedAt:new Date().toISOString() };
-    jobApplications.push(submission);
+    var s = { firstName:first, lastName:last, age:age, braceletType:bracelet, contact:contact, submittedAt:new Date().toISOString() };
+    jobApplications.push(s);
     if (typeof saveData === 'function') saveData('jobApplications', jobApplications);
-    if (typeof db !== 'undefined') db.collection('jobApplications').add(submission).catch(function(){});
+    if (typeof db !== 'undefined') db.collection('jobApplications').add(s).catch(function(){});
   } catch(e) {}
-
-  // 2. ALSO try FormSubmit (silent, works if activated for royalbeads.co)
   try {
     var iframe = document.getElementById('appFormFrame') || document.createElement('iframe');
     iframe.id = 'appFormFrame'; iframe.name = 'appFormFrame'; iframe.style.display = 'none';
     if (!iframe.parentNode) document.body.appendChild(iframe);
-    var hForm = document.createElement('form');
-    hForm.method = 'POST';
-    hForm.action = 'https://formsubmit.co/anaiya.khanuja@gmail.com';
-    hForm.target = 'appFormFrame';
-    hForm.style.display = 'none';
-    var fsFields = {
-      _subject: 'New Royal Beads Application — ' + first + ' ' + last,
-      _template: 'table', _captcha: 'false',
-      'First Name': first, 'Last Name': last, 'Age': age,
-      'Type of Bracelet': bracelet, 'Contact Info': contact,
-      'Submitted At': new Date().toLocaleString()
-    };
-    for (var k in fsFields) {
-      var inp = document.createElement('input');
-      inp.type = 'hidden'; inp.name = k; inp.value = fsFields[k];
-      hForm.appendChild(inp);
-    }
-    document.body.appendChild(hForm);
-    hForm.submit();
-    setTimeout(function(){ try { document.body.removeChild(hForm); } catch(e){} }, 2000);
+    var hf = document.createElement('form');
+    hf.method='POST'; hf.action='https://formsubmit.co/anaiya.khanuja@gmail.com'; hf.target='appFormFrame'; hf.style.display='none';
+    var f = { _subject:'New Royal Beads Application — '+first+' '+last, _template:'table', _captcha:'false',
+      'First Name':first, 'Last Name':last, 'Age':age, 'Type of Bracelet':bracelet, 'Contact Info':contact, 'Submitted At':new Date().toLocaleString() };
+    for (var k in f){ var inp=document.createElement('input'); inp.type='hidden'; inp.name=k; inp.value=f[k]; hf.appendChild(inp); }
+    document.body.appendChild(hf); hf.submit();
+    setTimeout(function(){ try{document.body.removeChild(hf);}catch(e){} }, 2000);
   } catch(e) {}
-
-  // 3. GUARANTEED PATH: open applicant's mail app addressed to anaiya.khanuja@gmail.com.
-  //    They just hit Send in their mail app — email arrives reliably.
-  try {
-    var subject = 'Royal Beads Application — ' + first + ' ' + last;
-    var body = 'Hi Anaiya!\n\nI would like to apply to work at Royal Beads.\n\n' +
-               '- First Name: ' + first + '\n' +
-               '- Last Name: '  + last  + '\n' +
-               '- Age: '        + age   + '\n' +
-               '- Type of Bracelet: ' + bracelet + '\n' +
-               '- Contact (phone or email): ' + contact + '\n\n' +
-               'Thanks!\n' + first;
-    var mailtoUrl = 'mailto:anaiya.khanuja@gmail.com?subject=' + encodeURIComponent(subject) + '&body=' + encodeURIComponent(body);
-    window._lastApplicationMailto = mailtoUrl;
-    window.location.href = mailtoUrl;
-  } catch(e) {}
-
-  // 4. Show thank-you view
-  var fv = document.getElementById('applyFormView');
-  var tv = document.getElementById('applyThankView');
-  var tt = document.getElementById('thankYouText');
-  if (fv) fv.style.display = 'none';
-  if (tv) tv.style.display = '';
-  if (tt) tt.textContent = (typeof thankYouMsg === 'string' && thankYouMsg) ? thankYouMsg : 'Thank you! I will get back to you in a few days.';
+  var fv = document.getElementById('applyFormView');  if (fv) fv.style.display = 'none';
+  var tv = document.getElementById('applyThankView'); if (tv) tv.style.display = '';
+  var tt = document.getElementById('thankYouText');   if (tt) tt.textContent = (typeof thankYouMsg === 'string' && thankYouMsg) ? thankYouMsg : 'Thank you! I will get back to you in a few days.';
   if (typeof renderAdminApplications === 'function') renderAdminApplications();
 }
 
@@ -2708,6 +2665,96 @@ renderAll();
     if(st[k+'_title']){ const el=document.getElementById('sec-'+k+'-title'); if(el) el.textContent=st[k+'_title']; }
     if(st[k+'_sub']){ const el=document.getElementById('sec-'+k+'-sub'); if(el) el.textContent=st[k+'_sub']; }
   });
+})();
+</script>
+
+<script>
+/* ═══ SAFETY NET — these run AT END so even if earlier script has any error, lock and submit still work ═══ */
+(function(){
+  var origOpenAdmin = window.openAdminModal;
+  window.openAdminModal = function(){
+    try {
+      if (typeof origOpenAdmin === 'function') return origOpenAdmin();
+    } catch(e) { console.warn('orig openAdminModal failed', e); }
+    // Fallback — just open the password modal
+    var p = document.getElementById('adminPass'); if (p) p.value = '';
+    var err = document.getElementById('adminErr'); if (err) err.style.display = 'none';
+    var m = document.getElementById('adminModal'); if (m) m.classList.add('open');
+  };
+
+  if (typeof window.checkAdmin !== 'function') {
+    window.checkAdmin = function(){
+      var pw = (document.getElementById('adminPass')||{}).value || '';
+      // Same password logic as the main script (Anaiya's password is "royalbeads")
+      if (pw === 'royalbeads' || pw === 'Royal Beads' || pw === 'RoyalBeads') {
+        window.isAdminMode = true;
+        try { document.body.classList.add('admin-mode'); } catch(e){}
+        var m = document.getElementById('adminModal'); if (m) m.classList.remove('open');
+        var btn = document.getElementById('adminLockBtn');
+        if (btn) { btn.textContent = '⚙️'; btn.classList.add('unlocked'); }
+        setTimeout(function(){ window.openAdminModal(); }, 250);
+      } else {
+        var err = document.getElementById('adminErr'); if (err) err.style.display = 'block';
+      }
+    };
+  }
+
+  if (typeof window.openApplyForm !== 'function') {
+    window.openApplyForm = function(){
+      var hm = document.getElementById('hiringModal'); if (hm) hm.classList.remove('open');
+      var fv = document.getElementById('applyFormView');  if (fv) fv.style.display = '';
+      var tv = document.getElementById('applyThankView'); if (tv) tv.style.display = 'none';
+      var er = document.getElementById('appErr');         if (er) er.style.display = 'none';
+      var am = document.getElementById('applyModal');     if (am) am.classList.add('open');
+    };
+  }
+
+  if (typeof window.resetApplyForm !== 'function') {
+    window.resetApplyForm = function(){
+      ['appFirstName','appLastName','appBracelet','appContact','appAge'].forEach(function(id){
+        var el = document.getElementById(id); if (el) el.value = '';
+      });
+      var er = document.getElementById('appErr'); if (er) { er.style.display='none'; er.textContent=''; }
+      var fv = document.getElementById('applyFormView');  if (fv) fv.style.display = '';
+      var tv = document.getElementById('applyThankView'); if (tv) tv.style.display = 'none';
+    };
+  }
+
+  if (typeof window.showAppErr !== 'function') {
+    window.showAppErr = function(msg){
+      var e = document.getElementById('appErr');
+      if (e) { e.textContent = msg; e.style.display = 'block'; } else alert(msg);
+    };
+  }
+
+  if (typeof window.submitApplication !== 'function') {
+    window.submitApplication = function(){
+      var f = (document.getElementById('appFirstName')||{}).value || '';
+      var l = (document.getElementById('appLastName') ||{}).value || '';
+      var a = (document.getElementById('appAge')      ||{}).value || '';
+      var b = (document.getElementById('appBracelet') ||{}).value || '';
+      var c = (document.getElementById('appContact')  ||{}).value || '';
+      f = f.trim(); l = l.trim(); a = a.trim(); b = b.trim(); c = c.trim();
+      if (!f) return window.showAppErr('Please enter your first name.');
+      if (!l) return window.showAppErr('Please enter your last name.');
+      if (!a) return window.showAppErr('Please select your age.');
+      if (!b) return window.showAppErr('Please tell us what type of bracelet you would make.');
+      if (!c) return window.showAppErr('Please share contact info so we can reach you.');
+      try {
+        var ifr = document.getElementById('appFormFrame') || document.createElement('iframe');
+        ifr.id='appFormFrame'; ifr.name='appFormFrame'; ifr.style.display='none';
+        if (!ifr.parentNode) document.body.appendChild(ifr);
+        var hf = document.createElement('form');
+        hf.method='POST'; hf.action='https://formsubmit.co/anaiya.khanuja@gmail.com'; hf.target='appFormFrame'; hf.style.display='none';
+        var fields = { _subject:'New Royal Beads Application — '+f+' '+l, _template:'table', _captcha:'false',
+          'First Name':f, 'Last Name':l, 'Age':a, 'Type of Bracelet':b, 'Contact Info':c, 'Submitted At':new Date().toLocaleString() };
+        for (var k in fields){ var inp=document.createElement('input'); inp.type='hidden'; inp.name=k; inp.value=fields[k]; hf.appendChild(inp); }
+        document.body.appendChild(hf); hf.submit();
+      } catch(e) {}
+      var fv = document.getElementById('applyFormView');  if (fv) fv.style.display='none';
+      var tv = document.getElementById('applyThankView'); if (tv) tv.style.display='';
+    };
+  }
 })();
 </script>
 </body>
