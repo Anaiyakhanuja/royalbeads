@@ -2434,6 +2434,27 @@ function submitApplication(){
     }
   } catch(e) {}
 
+  // Send the application to anaiya.khanuja@gmail.com via FormSubmit.co (no backend needed).
+  // First-time setup: the very first submission triggers an email to Anaiya asking her
+  // to click a one-time confirmation link. After that, every application lands in her inbox.
+  try {
+    fetch("https://formsubmit.co/ajax/anaiya.khanuja@gmail.com", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify({
+        _subject: "New Royal Beads Application — " + first + " " + last,
+        _template: "table",
+        _captcha: "false",
+        "First Name": first,
+        "Last Name": last,
+        "Age": age,
+        "Type of Bracelet": bracelet,
+        "Contact Info": contact,
+        "Submitted At": new Date().toLocaleString()
+      })
+    }).catch(()=>{ /* fail silently — local + Firestore copies still saved */ });
+  } catch(e) {}
+
   document.getElementById('applyFormView').style.display = 'none';
   document.getElementById('applyThankView').style.display = '';
   document.getElementById('thankYouText').textContent = thankYouMsg;
