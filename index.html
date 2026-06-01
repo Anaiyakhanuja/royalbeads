@@ -429,6 +429,13 @@ footer strong{color:var(--blush);font-style:italic;font-family:'Playfair Display
 
 <!-- ══ HOME PAGE ══ -->
 <div class="page active" id="page-home">
+  <!-- WE'RE HIRING POSTER -->
+  <div id="hiringBanner" onclick="document.getElementById('hiringModal').classList.add('open')" style="background:linear-gradient(135deg,var(--blush),var(--tc),var(--gold),var(--blush));background-size:300% 300%;text-align:center;padding:32px 20px;cursor:pointer;position:relative;z-index:1;animation:hiringShimmer 4s ease-in-out infinite;border-bottom:3px solid var(--rust);">
+    <div style="font-size:3rem;margin-bottom:6px;">🌟</div>
+    <div style="font-size:28px;font-weight:800;color:white;letter-spacing:6px;text-transform:uppercase;text-shadow:0 2px 8px rgba(0,0,0,.25);font-family:'Playfair Display',serif;">WE'RE HIRING!</div>
+    <div style="font-size:14px;color:rgba(255,255,255,.9);margin-top:8px;letter-spacing:2px;font-weight:500;">Join the Royal Beads team</div>
+    <div style="display:inline-block;margin-top:12px;padding:8px 24px;border:2px solid white;border-radius:100px;font-size:12px;font-weight:700;color:white;letter-spacing:2px;text-transform:uppercase;">See Details →</div>
+  </div>
   <section class="hero">
     <div class="badge">✦ Be Bold. Be Royal. Be You.</div>
     <h1><em>Royal</em><br>Beads</h1>
@@ -593,11 +600,12 @@ footer strong{color:var(--blush);font-style:italic;font-family:'Playfair Display
 <div class="page" id="page-about">
   <section class="about-section">
     <div class="about-inner">
-      <div style="display:flex;align-items:center;justify-content:center;padding:30px;background:linear-gradient(135deg,rgba(212,168,67,.08),rgba(201,106,62,.06));border-radius:24px;border:2px solid rgba(212,168,67,.15);min-height:200px;">
-        <div style="text-align:center;">
+      <!-- PERMANENT - Pull quote (replaces former photo slot). Do not edit. -->
+      <div id="aboutQuoteBox" data-permanent="true" style="border-radius:24px;border:3px solid rgba(201,106,62,.15);height:340px;background:linear-gradient(135deg,rgba(212,168,67,.10),rgba(201,106,62,.08));display:flex;align-items:center;justify-content:center;padding:30px;text-align:center;">
+        <div>
           <div style="font-size:2.5rem;margin-bottom:14px;">✨</div>
-          <p id="aboutQuote" style="font-family:'Playfair Display',serif;font-size:1.3rem;font-style:italic;color:var(--dark);line-height:1.6;max-width:400px;margin:0 auto;">"Every 'no' makes the next 'yes' even sweeter."</p>
-          <p style="font-size:.8rem;color:var(--tc);margin-top:10px;font-weight:600;">— Anaiya, Royal Beads</p>
+          <p id="aboutQuote" data-permanent="true" style="font-family:'Playfair Display',serif;font-size:1.3rem;font-style:italic;color:var(--dark);line-height:1.6;max-width:400px;margin:0 auto;">"Every 'no' makes the next 'yes' even sweeter."</p>
+          <p style="font-size:.8rem;color:var(--tc);margin-top:10px;font-weight:600;letter-spacing:1.5px;text-transform:uppercase;">— Anaiya, Royal Beads</p>
         </div>
       </div>
       <div class="about-text">
@@ -783,53 +791,84 @@ footer strong{color:var(--blush);font-style:italic;font-family:'Playfair Display
   </div>
 </div>
 
-<!-- WE'RE HIRING MODAL -->
+<!-- WE'RE HIRING — JOB DESCRIPTION MODAL -->
 <div class="admin-modal" id="hiringModal">
-  <div class="admin-box" style="max-width:460px;padding:28px;">
+  <div class="admin-box" style="max-width:480px;padding:28px;">
     <div style="text-align:center;margin-bottom:18px;">
       <div style="font-size:2.5rem;margin-bottom:6px;">🌟</div>
-      <h3 style="font-family:'Playfair Display',serif;color:var(--dark);margin-bottom:6px;">We're Hiring!</h3>
-      <p style="font-size:.82rem;color:var(--mid);line-height:1.5;">Want to be part of Royal Beads? We're looking for creative, hardworking people to join our team!</p>
+      <h3 style="font-family:'Playfair Display',serif;color:var(--dark);margin-bottom:6px;font-size:1.5rem;">We're Hiring!</h3>
+      <p style="font-size:.8rem;color:var(--mid);letter-spacing:2px;text-transform:uppercase;font-weight:600;">Join the Royal Beads team</p>
     </div>
     <div style="background:rgba(122,158,126,.08);border-radius:12px;padding:16px;margin-bottom:16px;border:1px solid rgba(122,158,126,.15);">
-      <p style="font-size:.82rem;color:var(--dark);line-height:1.6;white-space:pre-line;" id="hiringDesc">We're looking for creative, hardworking people to join our team!</p>
+      <p style="font-size:.82rem;color:var(--dark);line-height:1.7;white-space:pre-line;" id="hiringDesc">We're looking for creative, kind, and hardworking friends to help me make bracelets, package orders, and spread Royal Beads love. Must be 18 or under. Flexible hours, paid per project. If this sounds like you, tap Apply below and tell me a little about yourself! 🤍</p>
     </div>
-    <div style="background:rgba(201,106,62,.06);border-radius:12px;padding:16px;border:1px solid rgba(201,106,62,.12);">
-      <p style="font-size:.8rem;color:var(--dark);font-weight:600;margin-bottom:8px;">📩 Interested? Reach out!</p>
-      <p style="font-size:.85rem;color:var(--rust);font-weight:600;" id="hiringContact">Contact info coming soon</p>
+    <div style="display:flex;gap:10px;">
+      <button onclick="document.getElementById('hiringModal').classList.remove('open')" style="flex:1;padding:12px 20px;border-radius:10px;border:1.5px solid rgba(42,26,16,.15);background:transparent;color:var(--mid);font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;">Close</button>
+      <button onclick="openApplyForm()" style="flex:2;padding:12px 20px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--tc),var(--rust));color:white;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;letter-spacing:1px;text-transform:uppercase;">Apply Now →</button>
     </div>
-    <button onclick="document.getElementById('hiringModal').classList.remove('open')" style="display:block;margin:18px auto 0;padding:10px 28px;border-radius:10px;border:none;background:var(--rust);color:white;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;">Close</button>
   </div>
 </div>
 
-<!-- TERMS & CONDITIONS MODAL -->
-<div class="admin-modal" id="termsModal">
-  <div class="admin-box" style="max-width:500px;max-height:80vh;overflow-y:auto;padding:28px;">
-    <h3 style="text-align:center;margin-bottom:16px;font-family:'Playfair Display',serif;color:var(--dark);">Terms & Conditions</h3>
-    <div style="font-size:.82rem;color:var(--dark);line-height:1.7;">
-      <p style="margin-bottom:12px;"><strong>1. All Sales Are Final</strong><br>All purchases from Royal Beads are final. We do not offer returns, exchanges, or refunds under any circumstances. Please review your order carefully before completing payment.</p>
-      <p style="margin-bottom:12px;"><strong>2. Assumption of Risk & Liability Waiver</strong><br>By purchasing any product from Royal Beads, the buyer assumes full responsibility for the use, handling, and care of the product after purchase. Royal Beads, its owner, and its affiliates shall not be held liable for any injury, illness, death, damage, loss, or any other harm — directly or indirectly — resulting from the use or misuse of any product purchased. This includes but is not limited to: choking, swallowing, or ingestion of beads or small parts by children or adults; allergic reactions to materials including beads, string, cord, metal clasps, dyes, or adhesives; skin irritation, rashes, or any dermatological reactions; strangulation or entanglement hazards; breakage of bracelets resulting in loose beads that pose choking hazards; any injury caused by broken or sharp bracelet components; damage to property caused by any product.</p>
-      <p style="margin-bottom:12px;"><strong>3. Small Parts Warning</strong><br>⚠️ WARNING: Royal Beads products contain small parts, including beads, clasps, and decorative charms. These items pose a CHOKING HAZARD and are NOT suitable for children under 3 years of age. Adult supervision is required for children wearing or handling any bracelet. The buyer is solely responsible for ensuring products are kept away from small children and pets.</p>
-      <p style="margin-bottom:12px;"><strong>4. Not Intended for Consumption</strong><br>Royal Beads products are jewelry and are not intended to be eaten, chewed, sucked on, or placed in the mouth. Royal Beads is not liable for any harm resulting from ingestion or oral contact with any product or component.</p>
-      <p style="margin-bottom:12px;"><strong>5. Allergies & Sensitivities</strong><br>Royal Beads products may contain materials that cause allergic reactions in some individuals. It is the buyer's responsibility to check for sensitivities before wearing. Royal Beads is not responsible for any allergic or adverse reactions.</p>
-      <p style="margin-bottom:12px;"><strong>6. Handmade Products</strong><br>Each bracelet is handmade with care. Due to the nature of handmade items, slight variations in color, size, and appearance are normal. Bracelets may stretch, fade, or break over time with regular wear. Royal Beads does not guarantee the durability or longevity of any product.</p>
-      <p style="margin-bottom:12px;"><strong>7. Shipping & Pickup</strong><br>Shipping fees are non-refundable. Delivery times may vary and are not guaranteed. Royal Beads is not responsible for items lost, stolen, or damaged during shipping. For local pickup orders, you must collect your order at the address provided.</p>
-      <p style="margin-bottom:12px;"><strong>8. Payment</strong><br>Payment is required at the time of purchase via PayPal, Venmo, or Zelle. Orders are not processed until payment is received in full.</p>
-      <p style="margin-bottom:12px;"><strong>9. Accuracy</strong><br>Please ensure your shipping address and contact information are correct. Royal Beads is not responsible for orders sent to incorrect addresses provided by the customer.</p>
-      <p style="margin-bottom:12px;"><strong>10. Indemnification</strong><br>By completing a purchase, the buyer agrees to indemnify and hold harmless Royal Beads, its owner, family members, and any associated parties from any and all claims, lawsuits, damages, losses, costs, or expenses arising from the buyer's purchase, use, or misuse of any product.</p>
-      <p style="margin-bottom:0;"><strong>11. Contact</strong><br>For questions, reach out via the Beadline page. We're happy to help before you place your order!</p>
+<!-- APPLICATION FORM MODAL -->
+<div class="admin-modal" id="applyModal">
+  <div class="admin-box" style="max-width:520px;max-height:85vh;overflow-y:auto;padding:28px;">
+    <div style="text-align:center;margin-bottom:18px;">
+      <div style="font-size:2rem;margin-bottom:6px;">📝</div>
+      <h3 style="font-family:'Playfair Display',serif;color:var(--dark);margin-bottom:4px;font-size:1.4rem;">Application Form</h3>
+      <p style="font-size:.78rem;color:var(--mid);">Fill this out and I'll get back to you soon!</p>
     </div>
-    <button onclick="document.getElementById('termsModal').classList.remove('open')" style="display:block;margin:20px auto 0;padding:10px 28px;border-radius:10px;border:none;background:var(--rust);color:white;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;">Got It</button>
-  </div>
-</div>
-
-<!-- ADMIN PASSWORD MODAL -->
-<div class="admin-modal" id="adminModal">
-  <div class="admin-box" id="adminBoxLogin">
-    <h3>🔐 Owner Access</h3>
-    <input type="password" id="adminPass" placeholder="Enter password…" onkeydown="if(event.key==='Enter')checkAdmin()">
-    <button onclick="checkAdmin()">Unlock</button>
-    <div class="admin-err" id="adminErr">Wrong password. Try again.</div>
+    <div id="applyFormView">
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px;">
+        <div>
+          <label style="display:block;font-size:.72rem;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;color:var(--mid);margin-bottom:4px;">First Name *</label>
+          <input type="text" id="appFirstName" placeholder="Jane" style="width:100%;padding:10px 12px;border:1.5px solid rgba(42,26,16,.12);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.88rem;outline:none;box-sizing:border-box;">
+        </div>
+        <div>
+          <label style="display:block;font-size:.72rem;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;color:var(--mid);margin-bottom:4px;">Last Name *</label>
+          <input type="text" id="appLastName" placeholder="Doe" style="width:100%;padding:10px 12px;border:1.5px solid rgba(42,26,16,.12);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.88rem;outline:none;box-sizing:border-box;">
+        </div>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:.72rem;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;color:var(--mid);margin-bottom:4px;">Age (18 and under) *</label>
+        <select id="appAge" style="width:100%;padding:10px 12px;border:1.5px solid rgba(42,26,16,.12);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.88rem;outline:none;box-sizing:border-box;background:white;">
+          <option value="">Select your age…</option>
+          <option value="under 7">Under 7</option>
+          <option value="7">7</option>
+          <option value="8">8</option>
+          <option value="9">9</option>
+          <option value="10">10</option>
+          <option value="11">11</option>
+          <option value="12">12</option>
+          <option value="13">13</option>
+          <option value="14">14</option>
+          <option value="15">15</option>
+          <option value="16">16</option>
+          <option value="17">17</option>
+          <option value="18">18</option>
+        </select>
+        <p style="font-size:.7rem;color:var(--mid);margin-top:4px;font-style:italic;">You must be 18 or under to apply.</p>
+      </div>
+      <div style="margin-bottom:12px;">
+        <label style="display:block;font-size:.72rem;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;color:var(--mid);margin-bottom:4px;">Type of Bracelet You'd Make *</label>
+        <textarea id="appBracelet" placeholder="e.g. macramé, beaded, heishi, friendship, charm…" style="width:100%;padding:10px 12px;border:1.5px solid rgba(42,26,16,.12);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.88rem;outline:none;min-height:60px;resize:vertical;box-sizing:border-box;"></textarea>
+      </div>
+      <div style="margin-bottom:18px;">
+        <label style="display:block;font-size:.72rem;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;color:var(--mid);margin-bottom:4px;">Contact Info (Phone or Email) *</label>
+        <textarea id="appContact" placeholder="Phone number or email address. A parent or guardian's phone/email is totally fine!" style="width:100%;padding:10px 12px;border:1.5px solid rgba(42,26,16,.12);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.88rem;outline:none;min-height:60px;resize:vertical;box-sizing:border-box;"></textarea>
+        <p style="font-size:.7rem;color:var(--mid);margin-top:4px;font-style:italic;">Phone or email only — a parent or guardian's contact is okay.</p>
+      </div>
+      <div id="appErr" style="display:none;background:rgba(168,74,37,.1);color:var(--rust);padding:10px 12px;border-radius:8px;font-size:.8rem;margin-bottom:12px;text-align:center;font-weight:500;"></div>
+      <div style="display:flex;gap:10px;">
+        <button onclick="document.getElementById('applyModal').classList.remove('open')" style="flex:1;padding:12px 20px;border-radius:10px;border:1.5px solid rgba(42,26,16,.15);background:transparent;color:var(--mid);font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;">Cancel</button>
+        <button onclick="submitApplication()" style="flex:2;padding:12px 20px;border-radius:10px;border:none;background:linear-gradient(135deg,var(--sage),var(--tc));color:white;font-family:'DM Sans',sans-serif;font-size:.9rem;font-weight:700;cursor:pointer;letter-spacing:1px;text-transform:uppercase;">Submit</button>
+      </div>
+    </div>
+    <div id="applyThankView" style="display:none;text-align:center;padding:20px 10px;">
+      <div style="font-size:3rem;margin-bottom:14px;">🤍</div>
+      <h3 style="font-family:'Playfair Display',serif;color:var(--dark);margin-bottom:10px;font-size:1.3rem;">Application Sent!</h3>
+      <p id="thankYouText" style="font-size:.95rem;color:var(--dark);line-height:1.6;white-space:pre-line;margin-bottom:20px;">Thank you! I will get back to you in a few days.</p>
+      <button onclick="document.getElementById('applyModal').classList.remove('open');resetApplyForm();" style="padding:12px 32px;border-radius:10px;border:none;background:var(--rust);color:white;font-family:'DM Sans',sans-serif;font-size:.85rem;font-weight:600;cursor:pointer;">Close</button>
+    </div>
   </div>
 </div>
 
@@ -850,10 +889,18 @@ footer strong{color:var(--blush);font-style:italic;font-family:'Playfair Display
     <div style="margin-bottom:18px;padding:14px;background:rgba(212,168,67,.1);border-radius:12px;border:1px solid rgba(212,168,67,.2);">
       <label style="display:block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;color:var(--mid);margin-bottom:6px;">🌟 We're Hiring — Settings</label>
       <label style="display:block;font-size:.78rem;color:var(--mid);margin-bottom:4px;font-weight:500;">Job Description</label>
-      <textarea id="adminHiringDesc" placeholder="Describe the role, what you're looking for, hours, pay, etc." style="width:100%;padding:10px 12px;border:1.5px solid rgba(42,26,16,.12);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.85rem;outline:none;min-height:80px;resize:vertical;margin-bottom:8px;box-sizing:border-box;"></textarea>
-      <label style="display:block;font-size:.78rem;color:var(--mid);margin-bottom:4px;font-weight:500;">Contact Info</label>
-      <input type="text" id="adminHiringContact" placeholder="e.g. Email me at anaiya@gmail.com or DM @royalbeads on Instagram" style="width:100%;padding:10px 12px;border:1.5px solid rgba(42,26,16,.12);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.85rem;outline:none;margin-bottom:8px;box-sizing:border-box;">
-      <button onclick="saveHiringContact();saveHiringDesc()" style="padding:8px 18px;border-radius:8px;border:none;background:var(--gold);color:white;font-size:.8rem;font-weight:500;cursor:pointer;">Save Hiring Info</button>
+      <textarea id="adminHiringDesc" placeholder="Describe the role, what you're looking for, hours, pay, etc." style="width:100%;padding:10px 12px;border:1.5px solid rgba(42,26,16,.12);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.85rem;outline:none;min-height:90px;resize:vertical;margin-bottom:10px;box-sizing:border-box;"></textarea>
+      <label style="display:block;font-size:.78rem;color:var(--mid);margin-bottom:4px;font-weight:500;">Thank You Message (shown after submit)</label>
+      <textarea id="adminThankYou" placeholder="Thank you! I will get back to you in a few days." style="width:100%;padding:10px 12px;border:1.5px solid rgba(42,26,16,.12);border-radius:10px;font-family:'DM Sans',sans-serif;font-size:.85rem;outline:none;min-height:60px;resize:vertical;margin-bottom:8px;box-sizing:border-box;"></textarea>
+      <button onclick="saveHiringDesc();saveThankYou();" style="padding:8px 18px;border-radius:8px;border:none;background:var(--gold);color:white;font-size:.8rem;font-weight:500;cursor:pointer;">Save Hiring Info</button>
+    </div>
+
+    <!-- APPLICATIONS RECEIVED -->
+    <div style="margin-bottom:18px;padding:14px;background:rgba(122,158,126,.08);border-radius:12px;border:1px solid rgba(122,158,126,.2);">
+      <label style="display:block;font-size:10px;letter-spacing:1.5px;text-transform:uppercase;font-weight:600;color:var(--mid);margin-bottom:8px;">📩 Applications Received <span id="adminAppsCount" style="background:var(--sage);color:white;padding:2px 8px;border-radius:10px;font-size:10px;margin-left:6px;">0</span></label>
+      <div id="adminAppsList" style="max-height:240px;overflow-y:auto;font-size:.8rem;color:var(--dark);">
+        <p style="color:var(--mid);font-style:italic;font-size:.78rem;">No applications yet.</p>
+      </div>
     </div>
 
     <!-- SECTION TITLES -->
@@ -2042,8 +2089,9 @@ function openAdminModal(){
     // Already unlocked — open settings panel
     // Pre-fill current values
     document.getElementById('adminAddrInput').value=pickupAddress==='Address set by owner'?'':pickupAddress;
-    document.getElementById('adminHiringContact').value=hiringContact==='Contact info coming soon'?'':hiringContact;
-    document.getElementById('adminHiringDesc').value=hiringDesc==='We\'re looking for creative, hardworking people to join our team!'?'':hiringDesc;
+    const _ahd=document.getElementById('adminHiringDesc'); if(_ahd) _ahd.value = (hiringDesc===DEFAULT_HIRING_DESC?'':hiringDesc);
+    const _ty=document.getElementById('adminThankYou'); if(_ty) _ty.value = (thankYouMsg===DEFAULT_THANK_YOU?'':thankYouMsg);
+    renderAdminApplications();
     ['knot','rubber','bff','clay'].forEach(k=>{
       const tEl=document.getElementById('sec-'+k+'-title');
       const sEl=document.getElementById('sec-'+k+'-sub');
@@ -2301,31 +2349,126 @@ let pickupAddress=loadData('pickupAddr','Address set by owner');
 // Apply saved pickup address on load
 document.querySelectorAll('.pickup-addr').forEach(el=>{el.textContent=pickupAddress;});
 
-// ─── HIRING SETTINGS ───
-let hiringContact=loadData('hiringContact','Contact info coming soon');
-let hiringDesc=loadData('hiringDesc','We\'re looking for creative, hardworking people to join our team!');
-document.getElementById('hiringContact').textContent=hiringContact;
-document.getElementById('hiringDesc').textContent=hiringDesc;
+// ─── HIRING + APPLICATION FORM ───
+const DEFAULT_HIRING_DESC = "We're looking for creative, kind, and hardworking friends to help me make bracelets, package orders, and spread Royal Beads love. Must be 18 or under. Flexible hours, paid per project. If this sounds like you, tap Apply below and tell me a little about yourself! 🤍";
+const DEFAULT_THANK_YOU = "Thank you! I will get back to you in a few days.";
 
-function saveHiringContact(){
-  const inp=document.getElementById('adminHiringContact');
-  const val=inp?inp.value.trim():'';
-  if(val){
-    hiringContact=val;
-    saveData('hiringContact', val);
-    document.getElementById('hiringContact').textContent=val;
-  }
+let hiringDesc = loadData('hiringDesc', DEFAULT_HIRING_DESC);
+let thankYouMsg = loadData('thankYouMsg', DEFAULT_THANK_YOU);
+let jobApplications = loadData('jobApplications', []);
+
+function applyHiringTexts(){
+  const d = document.getElementById('hiringDesc');
+  if (d) d.textContent = hiringDesc;
+  const t = document.getElementById('thankYouText');
+  if (t) t.textContent = thankYouMsg;
 }
+applyHiringTexts();
 
 function saveHiringDesc(){
-  const inp=document.getElementById('adminHiringDesc');
-  const val=inp?inp.value.trim():'';
-  if(val){
-    hiringDesc=val;
-    saveData('hiringDesc', val);
-    document.getElementById('hiringDesc').textContent=val;
-  }
+  const inp = document.getElementById('adminHiringDesc');
+  const val = inp ? inp.value.trim() : '';
+  hiringDesc = val || DEFAULT_HIRING_DESC;
+  saveData('hiringDesc', hiringDesc);
+  applyHiringTexts();
 }
+
+function saveThankYou(){
+  const inp = document.getElementById('adminThankYou');
+  const val = inp ? inp.value.trim() : '';
+  thankYouMsg = val || DEFAULT_THANK_YOU;
+  saveData('thankYouMsg', thankYouMsg);
+  applyHiringTexts();
+}
+
+function saveHiringContact(){ /* no longer used */ }
+
+function openApplyForm(){
+  document.getElementById('hiringModal').classList.remove('open');
+  document.getElementById('applyFormView').style.display = '';
+  document.getElementById('applyThankView').style.display = 'none';
+  document.getElementById('appErr').style.display = 'none';
+  document.getElementById('applyModal').classList.add('open');
+}
+
+function resetApplyForm(){
+  ['appFirstName','appLastName','appBracelet','appContact'].forEach(id=>{
+    const el = document.getElementById(id); if (el) el.value = '';
+  });
+  const age = document.getElementById('appAge'); if (age) age.value = '';
+  const err = document.getElementById('appErr'); if (err) { err.style.display='none'; err.textContent=''; }
+  document.getElementById('applyFormView').style.display = '';
+  document.getElementById('applyThankView').style.display = 'none';
+}
+
+function showAppErr(msg){
+  const e = document.getElementById('appErr');
+  e.textContent = msg; e.style.display = 'block';
+}
+
+function submitApplication(){
+  const first = document.getElementById('appFirstName').value.trim();
+  const last = document.getElementById('appLastName').value.trim();
+  const age = document.getElementById('appAge').value.trim();
+  const bracelet = document.getElementById('appBracelet').value.trim();
+  const contact = document.getElementById('appContact').value.trim();
+
+  if (!first) return showAppErr('Please enter your first name.');
+  if (!last) return showAppErr('Please enter your last name.');
+  if (!age) return showAppErr('Please select your age.');
+  if (!bracelet) return showAppErr('Please tell us what type of bracelet you would make.');
+  if (!contact) return showAppErr('Please share contact info so we can reach you.');
+
+  const submission = {
+    firstName: first, lastName: last, age: age,
+    braceletType: bracelet, contact: contact,
+    submittedAt: new Date().toISOString()
+  };
+
+  jobApplications.push(submission);
+  saveData('jobApplications', jobApplications);
+
+  try {
+    if (typeof db !== 'undefined') {
+      db.collection('jobApplications').add(submission).catch(()=>{});
+    }
+  } catch(e) {}
+
+  document.getElementById('applyFormView').style.display = 'none';
+  document.getElementById('applyThankView').style.display = '';
+  document.getElementById('thankYouText').textContent = thankYouMsg;
+  renderAdminApplications();
+}
+
+function renderAdminApplications(){
+  const list = document.getElementById('adminAppsList');
+  const cnt = document.getElementById('adminAppsCount');
+  if (!list) return;
+  if (cnt) cnt.textContent = jobApplications.length;
+  if (!jobApplications.length){
+    list.innerHTML = '<p style="color:var(--mid);font-style:italic;font-size:.78rem;">No applications yet.</p>';
+    return;
+  }
+  list.innerHTML = jobApplications.slice().reverse().map(a => {
+    const date = a.submittedAt ? new Date(a.submittedAt).toLocaleDateString() : '';
+    const esc = s => String(s||'').replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
+    return `<div style="padding:10px 12px;margin-bottom:8px;background:white;border-radius:8px;border:1px solid rgba(42,26,16,.08);">
+      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px;">
+        <strong style="color:var(--dark);font-size:.85rem;">${esc(a.firstName)} ${esc(a.lastName)}</strong>
+        <span style="font-size:.7rem;color:var(--mid);">${date}</span>
+      </div>
+      <div style="font-size:.75rem;color:var(--mid);line-height:1.5;">
+        <div><strong>Age:</strong> ${esc(a.age)}</div>
+        <div><strong>Bracelet:</strong> ${esc(a.braceletType)}</div>
+        <div><strong>Contact:</strong> ${esc(a.contact)}</div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+document.getElementById('applyModal').addEventListener('click', function(e){
+  if (e.target === this) this.classList.remove('open');
+});
 
 // ─── ADMIN PRODUCT LIST ───
 function renderAdminProducts(){
@@ -2422,8 +2565,8 @@ function savePickupAddr(){
 function saveAdminSettings(){
   // Save pickup address & hiring info
   savePickupAddr();
-  saveHiringContact();
   saveHiringDesc();
+  saveThankYou();
   // Save section titles
   const sectionTitles=loadData('sectionTitles',{});
   ['knot','rubber','bff','clay'].forEach(k=>{
