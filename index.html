@@ -2407,58 +2407,80 @@ function showAppErr(msg){
 }
 
 function submitApplication(){
-  const first = document.getElementById('appFirstName').value.trim();
-  const last = document.getElementById('appLastName').value.trim();
-  const age = document.getElementById('appAge').value.trim();
-  const bracelet = document.getElementById('appBracelet').value.trim();
-  const contact = document.getElementById('appContact').value.trim();
-
-  if (!first) return showAppErr('Please enter your first name.');
-  if (!last) return showAppErr('Please enter your last name.');
-  if (!age) return showAppErr('Please select your age.');
-  if (!bracelet) return showAppErr('Please tell us what type of bracelet you would make.');
-  if (!contact) return showAppErr('Please share contact info so we can reach you.');
-
-  const submission = {
-    firstName: first, lastName: last, age: age,
-    braceletType: bracelet, contact: contact,
-    submittedAt: new Date().toISOString()
-  };
-
-  jobApplications.push(submission);
-  saveData('jobApplications', jobApplications);
-
   try {
-    if (typeof db !== 'undefined') {
-      db.collection('jobApplications').add(submission).catch(()=>{});
+    const firstEl = document.getElementById('appFirstName');
+    const lastEl  = document.getElementById('appLastName');
+    const ageEl   = document.getElementById('appAge');
+    const braEl   = document.getElementById('appBracelet');
+    const conEl   = document.getElementById('appContact');
+    if (!firstEl || !lastEl || !ageEl || !braEl || !conEl) {
+      alert('Form is missing fields. Please refresh the page and try again.');
+      return;
     }
-  } catch(e) {}
+    const first    = firstEl.value.trim();
+    const last     = lastEl.value.trim();
+    const age      = ageEl.value.trim();
+    const bracelet = braEl.value.trim();
+    const contact  = conEl.value.trim();
 
-  // Send the application to anaiya.khanuja@gmail.com via FormSubmit.co (no backend needed).
-  // First-time setup: the very first submission triggers an email to Anaiya asking her
-  // to click a one-time confirmation link. After that, every application lands in her inbox.
-  try {
-    fetch("https://formsubmit.co/ajax/anaiya.khanuja@gmail.com", {
-      method: "POST",
-      headers: { "Content-Type": "application/json", "Accept": "application/json" },
-      body: JSON.stringify({
-        _subject: "New Royal Beads Application — " + first + " " + last,
-        _template: "table",
-        _captcha: "false",
-        "First Name": first,
-        "Last Name": last,
-        "Age": age,
-        "Type of Bracelet": bracelet,
-        "Contact Info": contact,
-        "Submitted At": new Date().toLocaleString()
-      })
-    }).catch(()=>{ /* fail silently — local + Firestore copies still saved */ });
-  } catch(e) {}
+    if (!first)    return showAppErr('Please enter your first name.');
+    if (!last)     return showAppErr('Please enter your last name.');
+    if (!age)      return showAppErr('Please select your age.');
+    if (!bracelet) return showAppErr('Please tell us what type of bracelet you would make.');
+    if (!contact)  return showAppErr('Please share contact info so we can reach you.');
 
-  document.getElementById('applyFormView').style.display = 'none';
-  document.getElementById('applyThankView').style.display = '';
-  document.getElementById('thankYouText').textContent = thankYouMsg;
-  renderAdminApplications();
+    const submission = {
+      firstName: first, lastName: last, age: age,
+      braceletType: bracelet, contact: contact,
+      submittedAt: new Date().toISOString()
+    };
+
+    // 1. Local copy
+    try {
+      if (typeof jobApplications === 'undefined') { window.jobApplications = []; }
+      jobApplications.push(submission);
+      if (typeof saveData === 'function') saveData('jobApplications', jobApplications);
+    } catch(e) { console.warn('localStorage save failed', e); }
+
+    // 2. Firestore copy
+    try {
+      if (typeof db !== 'undefined') {
+        db.collection('jobApplications').add(submission).catch(err => console.warn('Firestore save failed', err));
+      }
+    } catch(e) { console.warn('Firestore call failed', e); }
+
+    // 3. Email to anaiya.khanuja@gmail.com via FormSubmit
+    try {
+      fetch("https://formsubmit.co/ajax/anaiya.khanuja@gmail.com", {
+        method: "POST",
+        headers: { "Content-Type": "application/json", "Accept": "application/json" },
+        body: JSON.stringify({
+          _subject: "New Royal Beads Application — " + first + " " + last,
+          _template: "table",
+          _captcha: "false",
+          "First Name": first,
+          "Last Name": last,
+          "Age": age,
+          "Type of Bracelet": bracelet,
+          "Contact Info": contact,
+          "Submitted At": new Date().toLocaleString()
+        })
+      }).catch(err => console.warn('Email send failed', err));
+    } catch(e) { console.warn('Email fetch call failed', e); }
+
+    // 4. Show thank-you view
+    const formView  = document.getElementById('applyFormView');
+    const thankView = document.getElementById('applyThankView');
+    const thankText = document.getElementById('thankYouText');
+    if (formView)  formView.style.display  = 'none';
+    if (thankView) thankView.style.display = '';
+    if (thankText) thankText.textContent = (typeof thankYouMsg === 'string' && thankYouMsg) ? thankYouMsg : 'Thank you! I will get back to you in a few days.';
+
+    if (typeof renderAdminApplications === 'function') renderAdminApplications();
+  } catch(err) {
+    console.error('submitApplication crashed:', err);
+    alert('Something went wrong submitting your application. Please try again, or contact us directly.');
+  }
 }
 
 function renderAdminApplications(){
