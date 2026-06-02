@@ -2481,6 +2481,39 @@ function renderAdminApplications(){
   const list = document.getElementById('adminAppsList');
   const cnt = document.getElementById('adminAppsCount');
   if (!list) return;
+
+  // Also fetch any applications stored in Firestore so submissions from other
+  // devices show up here. Merge with the local list, dedupe by submittedAt.
+  try {
+    if (typeof db !== 'undefined') {
+      db.collection('jobApplications').get().then(function(snap){
+        if (!snap || snap.empty) return;
+        var seen = {};
+        jobApplications.forEach(function(a){ seen[a.submittedAt] = true; });
+        var added = false;
+        snap.forEach(function(doc){
+          var d = doc.data();
+          if (d && d.submittedAt && !seen[d.submittedAt]) {
+            jobApplications.push(d);
+            seen[d.submittedAt] = true;
+            added = true;
+          }
+        });
+        if (added) {
+          try { if (typeof saveData === 'function') saveData('jobApplications', jobApplications); } catch(e){}
+          renderAdminApplicationsFromArray();
+        }
+      }).catch(function(){});
+    }
+  } catch(e) {}
+
+  renderAdminApplicationsFromArray();
+}
+
+function renderAdminApplicationsFromArray(){
+  const list = document.getElementById('adminAppsList');
+  const cnt = document.getElementById('adminAppsCount');
+  if (!list) return;
   if (cnt) cnt.textContent = jobApplications.length;
   if (!jobApplications.length){
     list.innerHTML = '<p style="color:var(--mid);font-style:italic;font-size:.78rem;">No applications yet.</p>';
