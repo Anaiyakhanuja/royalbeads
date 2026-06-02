@@ -1154,15 +1154,20 @@ function tagToType(tag,name,id){
 }
 function pushToDashboard(customer,items){
   try{
-    const existing=JSON.parse(localStorage.getItem('ccc_incoming')||'[]');
-    items.forEach(item=>existing.push({customer:customer,type:item.type,isBFF:item.isBFF,price:item.price,isCustom:item.isCustom||false,date:new Date().toISOString()}));
-    localStorage.setItem('ccc_incoming',JSON.stringify(existing));
-    // Also push to Firestore so orders are visible from any device.
+    if (!Array.isArray(window.orders)) window.orders = [];
+    items.forEach(function(item){
+      window.orders.push({customer:customer,type:item.type,isBFF:item.isBFF,price:item.price,isCustom:item.isCustom||false,date:new Date().toISOString()});
+    });
+    // localStorage save
+    try { localStorage.setItem('ccc_incoming', JSON.stringify(window.orders)); } catch(e) {}
+    // Firestore sync — visible from any device
     try {
       if (typeof db !== 'undefined') {
-        db.collection('siteData').doc('orders').set({value: existing}).catch(function(){});
+        db.collection('siteData').doc('orders').set({value: window.orders}).catch(function(){});
       }
     } catch(e) {}
+    // Re-render admin panel if it's open
+    try { if (typeof renderAdminOrders === 'function') renderAdminOrders(); } catch(e) {}
   }catch(e){}
 }
 
@@ -1226,17 +1231,15 @@ function saveEdit(id, field, val){ if(!edits[id]) edits[id]={}; edits[id][field]
     }
     else if(key==='orders'){
       if (Array.isArray(val)) {
-        // MERGE Firestore orders into local 'ccc_incoming' (keyed by customer+date)
-        try {
-          var local = JSON.parse(localStorage.getItem('ccc_incoming')||'[]');
-          var seenO = {};
-          local.forEach(function(o){ if (o && o.date) seenO[(o.customer||'')+'|'+o.date] = true; });
-          val.forEach(function(o){
-            var k = (o && o.customer || '') + '|' + (o && o.date || '');
-            if (o && o.date && !seenO[k]) { local.push(o); seenO[k] = true; }
-          });
-          localStorage.setItem('ccc_incoming', JSON.stringify(local));
-        } catch(e) {}
+        // MERGE — don't overwrite local pushes. Add Firestore-only entries.
+        if (!Array.isArray(window.orders)) window.orders = [];
+        var seenO = {};
+        window.orders.forEach(function(o){ if (o && o.date) seenO[(o.customer||'')+'|'+o.date] = true; });
+        val.forEach(function(o){
+          var k = (o && o.customer || '') + '|' + (o && o.date || '');
+          if (o && o.date && !seenO[k]) { window.orders.push(o); seenO[k] = true; }
+        });
+        try { localStorage.setItem('ccc_incoming', JSON.stringify(window.orders)); } catch(e) {}
         if (typeof renderAdminOrders === 'function') { try { renderAdminOrders(); } catch(e) {} }
       }
     }
@@ -2435,6 +2438,10 @@ window.jobApplications = loadData('jobApplications', []);
 // Also alias as a local for the rest of this script:
 var jobApplications = window.jobApplications;
 
+// Mirror exact same pattern for orders so they persist identically.
+try { window.orders = JSON.parse(localStorage.getItem('ccc_incoming') || '[]'); } catch(e) { window.orders = []; }
+var orders = window.orders;
+
 function applyHiringTexts(){
   const d = document.getElementById('hiringDesc');
   if (d) d.textContent = hiringDesc;
@@ -2555,21 +2562,46 @@ function renderAdminApplicationsFromArray(){
     list.innerHTML = '<p style="color:var(--mid);font-style:italic;font-size:.78rem;">No applications yet.</p>';
     return;
   }
-  list.innerHTML = jobApplications.slice().reverse().map(a => {
-    const date = a.submittedAt ? new Date(a.submittedAt).toLocaleDateString() : '';
-    const esc = s => String(s||'').replace(/[<>&]/g, c => ({'<':'&lt;','>':'&gt;','&':'&amp;'}[c]));
-    return `<div style="padding:10px 12px;margin-bottom:8px;background:white;border-radius:8px;border:1px solid rgba(42,26,16,.08);">
-      <div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px;">
-        <strong style="color:var(--dark);font-size:.85rem;">${esc(a.firstName)} ${esc(a.lastName)}</strong>
-        <span style="font-size:.7rem;color:var(--mid);">${date}</span>
-      </div>
-      <div style="font-size:.75rem;color:var(--mid);line-height:1.5;">
-        <div><strong>Age:</strong> ${esc(a.age)}</div>
-        <div><strong>Bracelet:</strong> ${esc(a.braceletType)}</div>
-        <div><strong>Contact:</strong> ${esc(a.contact)}</div>
-      </div>
-    </div>`;
+  // Keep original index so checkbox knows which application to remove
+  var indexed = jobApplications.map(function(a, i){ return {a:a, i:i}; }).reverse();
+  list.innerHTML = indexed.map(function(item){
+    var a = item.a; var idx = item.i;
+    var date = a.submittedAt ? new Date(a.submittedAt).toLocaleDateString() : '';
+    var esc = function(s){ return String(s||'').replace(/[<>&]/g, function(c){ return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c]; }); };
+    return '<div id="app-row-'+idx+'" style="padding:10px 12px;margin-bottom:8px;background:white;border-radius:8px;border:1px solid rgba(42,26,16,.08);display:flex;align-items:flex-start;gap:10px;">' +
+      '<label style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:rgba(122,158,126,0.10);border:1.5px solid rgba(122,158,126,0.35);cursor:pointer;flex-shrink:0;" title="Check when you have responded to this applicant — it will disappear after refresh"><input type="checkbox" onchange="markApplicationDone(' + idx + ', this)" style="width:20px;height:20px;accent-color:var(--sage);cursor:pointer;margin:0;"></label>' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:6px;">' +
+          '<strong style="color:var(--dark);font-size:.85rem;">' + esc(a.firstName) + ' ' + esc(a.lastName) + '</strong>' +
+          '<span style="font-size:.7rem;color:var(--mid);">' + date + '</span>' +
+        '</div>' +
+        '<div style="font-size:.75rem;color:var(--mid);line-height:1.5;">' +
+          '<div><strong>Age:</strong> ' + esc(a.age) + '</div>' +
+          '<div><strong>Bracelet:</strong> ' + esc(a.braceletType) + '</div>' +
+          '<div><strong>Contact:</strong> ' + esc(a.contact) + '</div>' +
+        '</div>' +
+      '</div>' +
+    '</div>';
   }).join('');
+}
+
+// Check off an application — remove from list + sync to Firestore.
+// Stays visible (faded + strikethrough) until you refresh the page.
+function markApplicationDone(index, checkbox){
+  try {
+    if (index >= 0 && index < jobApplications.length) {
+      jobApplications.splice(index, 1);
+      if (typeof saveData === 'function') saveData('jobApplications', jobApplications);
+    }
+  } catch(e) {}
+  var row = checkbox && checkbox.closest ? checkbox.closest('[id^="app-row-"]') : null;
+  if (row) {
+    row.style.opacity = '0.5';
+    row.style.textDecoration = 'line-through';
+    row.style.background = 'rgba(122,158,126,0.10)';
+  }
+  var cnt = document.getElementById('adminAppsCount');
+  if (cnt) cnt.textContent = jobApplications.length;
 }
 
 document.getElementById('applyModal').addEventListener('click', function(e){
@@ -2632,8 +2664,14 @@ function renderAdminOrders(){
   var list = document.getElementById('adminOrdersList');
   var cnt = document.getElementById('adminOrdersCount');
   if (!list) return;
-  var orders = [];
-  try { orders = JSON.parse(localStorage.getItem('ccc_incoming') || '[]'); } catch(e) {}
+  // Defensive reload — sync window.orders with whatever is latest in localStorage
+  try {
+    var saved = JSON.parse(localStorage.getItem('ccc_incoming') || '[]');
+    if (Array.isArray(saved) && saved.length > (window.orders||[]).length) {
+      window.orders = saved;
+    }
+  } catch(e) {}
+  var orders = window.orders || [];
   if (cnt) cnt.textContent = orders.length;
   if (!orders.length){
     list.innerHTML = '<p style="color:var(--mid);font-style:italic;font-size:.78rem;">No orders yet.</p>';
@@ -2666,13 +2704,13 @@ function renderAdminOrders(){
 // The row stays visible (faded + strikethrough) until you refresh.
 function markOrderDone(index, checkbox){
   try {
-    var orders = JSON.parse(localStorage.getItem('ccc_incoming') || '[]');
-    if (index >= 0 && index < orders.length) {
-      orders.splice(index, 1);
-      localStorage.setItem('ccc_incoming', JSON.stringify(orders));
+    if (!Array.isArray(window.orders)) window.orders = [];
+    if (index >= 0 && index < window.orders.length) {
+      window.orders.splice(index, 1);
+      try { localStorage.setItem('ccc_incoming', JSON.stringify(window.orders)); } catch(e) {}
       try {
         if (typeof db !== 'undefined') {
-          db.collection('siteData').doc('orders').set({value: orders}).catch(function(){});
+          db.collection('siteData').doc('orders').set({value: window.orders}).catch(function(){});
         }
       } catch(e) {}
     }
