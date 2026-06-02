@@ -1157,6 +1157,12 @@ function pushToDashboard(customer,items){
     const existing=JSON.parse(localStorage.getItem('ccc_incoming')||'[]');
     items.forEach(item=>existing.push({customer:customer,type:item.type,isBFF:item.isBFF,price:item.price,isCustom:item.isCustom||false,date:new Date().toISOString()}));
     localStorage.setItem('ccc_incoming',JSON.stringify(existing));
+    // Also push to Firestore so orders are visible from any device.
+    try {
+      if (typeof db !== 'undefined') {
+        db.collection('siteData').doc('orders').set({value: existing}).catch(function(){});
+      }
+    } catch(e) {}
   }catch(e){}
 }
 
@@ -1169,7 +1175,7 @@ function loadData(key, fallback){ try{ const d=localStorage.getItem('rb_'+key); 
 function saveData(key, val){
   try{ localStorage.setItem('rb_'+key, JSON.stringify(val)); }catch(e){}
   // Sync admin data to Firebase for everyone
-  const syncKeys=['soldItems','replacedPhotos','productGallery','edits','ratings'];
+  const syncKeys=['soldItems','replacedPhotos','productGallery','edits','ratings','jobApplications'];
   if(syncKeys.includes(key)){
     db.collection('siteData').doc(key).set({value:val}).catch(()=>{});
   }
@@ -1194,7 +1200,7 @@ function saveEdit(id, field, val){ if(!edits[id]) edits[id]={}; edits[id][field]
 
 // ─── FIREBASE REAL-TIME SYNC ───
 // Listen for live changes so all visitors see updates instantly
-['soldItems','replacedPhotos','productGallery','edits','ratings'].forEach(key=>{
+['soldItems','replacedPhotos','productGallery','edits','ratings','jobApplications','orders'].forEach(key=>{
   db.collection('siteData').doc(key).onSnapshot(snap=>{
     if(!snap.exists) return;
     const val=snap.data().value;
@@ -1203,8 +1209,39 @@ function saveEdit(id, field, val){ if(!edits[id]) edits[id]={}; edits[id][field]
     else if(key==='productGallery') productGallery=val;
     else if(key==='edits') edits=val;
     else if(key==='ratings') ratings=val;
+    else if(key==='jobApplications'){
+      if (Array.isArray(val)) {
+        var seen = {};
+        jobApplications.forEach(function(a){ if (a && a.submittedAt) seen[a.submittedAt] = true; });
+        val.forEach(function(a){
+          if (a && a.submittedAt && !seen[a.submittedAt]) {
+            jobApplications.push(a);
+            seen[a.submittedAt] = true;
+          }
+        });
+        if (typeof renderAdminApplicationsFromArray === 'function') {
+          try { renderAdminApplicationsFromArray(); } catch(e) {}
+        }
+      }
+    }
+    else if(key==='orders'){
+      if (Array.isArray(val)) {
+        // MERGE Firestore orders into local 'ccc_incoming' (keyed by customer+date)
+        try {
+          var local = JSON.parse(localStorage.getItem('ccc_incoming')||'[]');
+          var seenO = {};
+          local.forEach(function(o){ if (o && o.date) seenO[(o.customer||'')+'|'+o.date] = true; });
+          val.forEach(function(o){
+            var k = (o && o.customer || '') + '|' + (o && o.date || '');
+            if (o && o.date && !seenO[k]) { local.push(o); seenO[k] = true; }
+          });
+          localStorage.setItem('ccc_incoming', JSON.stringify(local));
+        } catch(e) {}
+        if (typeof renderAdminOrders === 'function') { try { renderAdminOrders(); } catch(e) {} }
+      }
+    }
     try{ localStorage.setItem('rb_'+key, JSON.stringify(val)); }catch(e){}
-    renderAll();
+    if(key!=='jobApplications') renderAll();
   });
 });
 
@@ -2393,7 +2430,10 @@ const DEFAULT_THANK_YOU = "Thank you! I will get back to you in a few days.";
 
 let hiringDesc = loadData('hiringDesc', DEFAULT_HIRING_DESC);
 let thankYouMsg = loadData('thankYouMsg', DEFAULT_THANK_YOU);
-let jobApplications = loadData('jobApplications', []);
+// Use window.* so jobApplications is reachable from every script tag
+window.jobApplications = loadData('jobApplications', []);
+// Also alias as a local for the rest of this script:
+var jobApplications = window.jobApplications;
 
 function applyHiringTexts(){
   const d = document.getElementById('hiringDesc');
@@ -2456,8 +2496,7 @@ function submitApplication(){
     if (typeof jobApplications === 'undefined') window.jobApplications = [];
     var s = { firstName:first, lastName:last, age:age, braceletType:bracelet, contact:contact, submittedAt:new Date().toISOString() };
     jobApplications.push(s);
-    if (typeof saveData === 'function') saveData('jobApplications', jobApplications);
-    if (typeof db !== 'undefined') db.collection('jobApplications').add(s).catch(function(){});
+    if (typeof saveData === 'function') saveData('jobApplications', jobApplications); // saveData also syncs to siteData/jobApplications on Firestore
   } catch(e) {}
   try {
     var iframe = document.getElementById('appFormFrame') || document.createElement('iframe');
@@ -2475,6 +2514,20 @@ function submitApplication(){
   var tv = document.getElementById('applyThankView'); if (tv) tv.style.display = '';
   var tt = document.getElementById('thankYouText');   if (tt) tt.textContent = (typeof thankYouMsg === 'string' && thankYouMsg) ? thankYouMsg : 'Thank you! I will get back to you in a few days.';
   if (typeof renderAdminApplications === 'function') renderAdminApplications();
+  // Debug: show current application count in the thank-you message subtitle for verification
+  try {
+    var debugSpan = document.getElementById('appDebugCount');
+    if (!debugSpan) {
+      var thankView = document.getElementById('applyThankView');
+      if (thankView) {
+        debugSpan = document.createElement('div');
+        debugSpan.id = 'appDebugCount';
+        debugSpan.style.cssText = 'font-size:.7rem;color:#7a9e7e;margin-top:6px;';
+        thankView.insertBefore(debugSpan, thankView.firstChild.nextSibling);
+      }
+    }
+    if (debugSpan) debugSpan.textContent = '(Saved! You now have ' + jobApplications.length + ' application' + (jobApplications.length===1?'':'s') + ' total.)';
+  } catch(e) {}
 }
 
 function renderAdminApplications(){
@@ -2482,28 +2535,11 @@ function renderAdminApplications(){
   const cnt = document.getElementById('adminAppsCount');
   if (!list) return;
 
-  // Also fetch any applications stored in Firestore so submissions from other
-  // devices show up here. Merge with the local list, dedupe by submittedAt.
+  // Defensive reload from localStorage — in case anything reset the variable
   try {
-    if (typeof db !== 'undefined') {
-      db.collection('jobApplications').get().then(function(snap){
-        if (!snap || snap.empty) return;
-        var seen = {};
-        jobApplications.forEach(function(a){ seen[a.submittedAt] = true; });
-        var added = false;
-        snap.forEach(function(doc){
-          var d = doc.data();
-          if (d && d.submittedAt && !seen[d.submittedAt]) {
-            jobApplications.push(d);
-            seen[d.submittedAt] = true;
-            added = true;
-          }
-        });
-        if (added) {
-          try { if (typeof saveData === 'function') saveData('jobApplications', jobApplications); } catch(e){}
-          renderAdminApplicationsFromArray();
-        }
-      }).catch(function(){});
+    var saved = (typeof loadData === 'function') ? loadData('jobApplications', null) : null;
+    if (Array.isArray(saved) && saved.length > (jobApplications||[]).length) {
+      jobApplications = saved;
     }
   } catch(e) {}
 
@@ -2604,20 +2640,55 @@ function renderAdminOrders(){
     return;
   }
   var esc = function(s){ return String(s||'').replace(/[<>&]/g, function(c){ return {'<':'&lt;','>':'&gt;','&':'&amp;'}[c]; }); };
-  list.innerHTML = orders.slice().reverse().map(function(o){
+  // Keep each order's original index so the checkbox knows which one to remove
+  var indexed = orders.map(function(o, i){ return {o:o, i:i}; }).reverse();
+  list.innerHTML = indexed.map(function(item){
+    var o = item.o; var idx = item.i;
     var date = o.date ? new Date(o.date).toLocaleDateString() : '';
     var price = (typeof o.price === 'number' ? '$' + o.price.toFixed(2) : (o.price||''));
-    return '<div style="padding:10px 12px;margin-bottom:8px;background:white;border-radius:8px;border:1px solid rgba(42,26,16,.08);">' +
-      '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:4px;">' +
-        '<strong style="color:var(--dark);font-size:.85rem;">' + esc(o.customer) + '</strong>' +
-        '<span style="font-size:.7rem;color:var(--mid);">' + date + '</span>' +
-      '</div>' +
-      '<div style="font-size:.75rem;color:var(--mid);line-height:1.5;">' +
-        '<div><strong>Item:</strong> ' + esc(o.type) + (o.isBFF?' (BFF Set)':'') + (o.isCustom?' (Custom)':'') + '</div>' +
-        '<div><strong>Price:</strong> ' + esc(price) + '</div>' +
+    return '<div id="ord-row-'+idx+'" style="padding:10px 12px;margin-bottom:8px;background:white;border-radius:8px;border:1px solid rgba(42,26,16,.08);display:flex;align-items:flex-start;gap:10px;">' +
+      '<label style="display:flex;align-items:center;justify-content:center;width:32px;height:32px;border-radius:8px;background:rgba(122,158,126,0.10);border:1.5px solid rgba(122,158,126,0.35);cursor:pointer;flex-shrink:0;" title="Check when you have made and delivered this order — it will disappear after refresh"><input type="checkbox" onchange="markOrderDone(' + idx + ', this)" style="width:20px;height:20px;accent-color:var(--sage);cursor:pointer;margin:0;"></label>' +
+      '<div style="flex:1;min-width:0;">' +
+        '<div style="display:flex;justify-content:space-between;align-items:start;margin-bottom:4px;">' +
+          '<strong style="color:var(--dark);font-size:.85rem;">' + esc(o.customer) + '</strong>' +
+          '<span style="font-size:.7rem;color:var(--mid);">' + date + '</span>' +
+        '</div>' +
+        '<div style="font-size:.75rem;color:var(--mid);line-height:1.5;">' +
+          '<div><strong>Item:</strong> ' + esc(o.type) + (o.isBFF?' (BFF Set)':'') + (o.isCustom?' (Custom)':'') + '</div>' +
+          '<div><strong>Price:</strong> ' + esc(price) + '</div>' +
+        '</div>' +
       '</div>' +
     '</div>';
   }).join('');
+}
+
+// Check off an order — remove from local storage AND sync removal to Firestore.
+// The row stays visible (faded + strikethrough) until you refresh.
+function markOrderDone(index, checkbox){
+  try {
+    var orders = JSON.parse(localStorage.getItem('ccc_incoming') || '[]');
+    if (index >= 0 && index < orders.length) {
+      orders.splice(index, 1);
+      localStorage.setItem('ccc_incoming', JSON.stringify(orders));
+      try {
+        if (typeof db !== 'undefined') {
+          db.collection('siteData').doc('orders').set({value: orders}).catch(function(){});
+        }
+      } catch(e) {}
+    }
+  } catch(e) {}
+  var row = checkbox && checkbox.closest ? checkbox.closest('[id^="ord-row-"]') : null;
+  if (row) {
+    row.style.opacity = '0.5';
+    row.style.textDecoration = 'line-through';
+    row.style.background = 'rgba(122,158,126,0.10)';
+  }
+  var cnt = document.getElementById('adminOrdersCount');
+  if (cnt) {
+    var orders2 = [];
+    try { orders2 = JSON.parse(localStorage.getItem('ccc_incoming') || '[]'); } catch(e) {}
+    cnt.textContent = orders2.length;
+  }
 }
 
 
@@ -2873,5 +2944,7 @@ renderAll();
   }
 })();
 </script>
+<!-- Version badge — helps spot if Safari is showing a cached old version -->
+<div style="position:fixed;bottom:5px;left:5px;font-size:10px;color:rgba(120,120,120,0.6);font-family:monospace;z-index:9999;pointer-events:none;">v2026-06-02-fix3</div>
 </body>
 </html>
