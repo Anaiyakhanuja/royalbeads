@@ -1217,10 +1217,10 @@ function saveEdit(id, field, val){ if(!edits[id]) edits[id]={}; edits[id][field]
     else if(key==='jobApplications'){
       if (Array.isArray(val)) {
         var seen = {};
-        jobApplications.forEach(function(a){ if (a && a.submittedAt) seen[a.submittedAt] = true; });
+        window.jobApplications.forEach(function(a){ if (a && a.submittedAt) seen[a.submittedAt] = true; });
         val.forEach(function(a){
           if (a && a.submittedAt && !seen[a.submittedAt]) {
-            jobApplications.push(a);
+            window.jobApplications.push(a);
             seen[a.submittedAt] = true;
           }
         });
@@ -2433,14 +2433,11 @@ const DEFAULT_THANK_YOU = "Thank you! I will get back to you in a few days.";
 
 let hiringDesc = loadData('hiringDesc', DEFAULT_HIRING_DESC);
 let thankYouMsg = loadData('thankYouMsg', DEFAULT_THANK_YOU);
-// Use window.* so jobApplications is reachable from every script tag
+// Use window.* directly throughout so cross-script-tag and scope issues never break this
 window.jobApplications = loadData('jobApplications', []);
-// Also alias as a local for the rest of this script:
-var jobApplications = window.jobApplications;
-
-// Mirror exact same pattern for orders so they persist identically.
+if (!Array.isArray(window.jobApplications)) window.jobApplications = [];
 try { window.orders = JSON.parse(localStorage.getItem('ccc_incoming') || '[]'); } catch(e) { window.orders = []; }
-var orders = window.orders;
+if (!Array.isArray(window.orders)) window.orders = [];
 
 function applyHiringTexts(){
   const d = document.getElementById('hiringDesc');
@@ -2500,10 +2497,10 @@ function submitApplication(){
   if (!bracelet) return showAppErr('Please tell us what type of bracelet you would make.');
   if (!contact)  return showAppErr('Please share contact info so we can reach you.');
   try {
-    if (typeof jobApplications === 'undefined') window.jobApplications = [];
+    if (!Array.isArray(window.jobApplications)) window.jobApplications = [];
     var s = { firstName:first, lastName:last, age:age, braceletType:bracelet, contact:contact, submittedAt:new Date().toISOString() };
-    jobApplications.push(s);
-    if (typeof saveData === 'function') saveData('jobApplications', jobApplications); // saveData also syncs to siteData/jobApplications on Firestore
+    window.jobApplications.push(s);
+    if (typeof saveData === 'function') saveData('jobApplications', window.jobApplications); // saveData also syncs to siteData/jobApplications on Firestore
   } catch(e) {}
   try {
     var iframe = document.getElementById('appFormFrame') || document.createElement('iframe');
@@ -2533,7 +2530,7 @@ function submitApplication(){
         thankView.insertBefore(debugSpan, thankView.firstChild.nextSibling);
       }
     }
-    if (debugSpan) debugSpan.textContent = '(Saved! You now have ' + jobApplications.length + ' application' + (jobApplications.length===1?'':'s') + ' total.)';
+    if (debugSpan) debugSpan.textContent = '(Saved! You now have ' + window.jobApplications.length + ' application' + (window.jobApplications.length===1?'':'s') + ' total.)';
   } catch(e) {}
 }
 
@@ -2545,8 +2542,8 @@ function renderAdminApplications(){
   // Defensive reload from localStorage — in case anything reset the variable
   try {
     var saved = (typeof loadData === 'function') ? loadData('jobApplications', null) : null;
-    if (Array.isArray(saved) && saved.length > (jobApplications||[]).length) {
-      jobApplications = saved;
+    if (Array.isArray(saved) && saved.length > (window.jobApplications||[]).length) {
+      window.jobApplications = saved;
     }
   } catch(e) {}
 
@@ -2557,13 +2554,13 @@ function renderAdminApplicationsFromArray(){
   const list = document.getElementById('adminAppsList');
   const cnt = document.getElementById('adminAppsCount');
   if (!list) return;
-  if (cnt) cnt.textContent = jobApplications.length;
-  if (!jobApplications.length){
+  if (cnt) cnt.textContent = window.jobApplications.length;
+  if (!window.jobApplications.length){
     list.innerHTML = '<p style="color:var(--mid);font-style:italic;font-size:.78rem;">No applications yet.</p>';
     return;
   }
   // Keep original index so checkbox knows which application to remove
-  var indexed = jobApplications.map(function(a, i){ return {a:a, i:i}; }).reverse();
+  var indexed = window.jobApplications.map(function(a, i){ return {a:a, i:i}; }).reverse();
   list.innerHTML = indexed.map(function(item){
     var a = item.a; var idx = item.i;
     var date = a.submittedAt ? new Date(a.submittedAt).toLocaleDateString() : '';
@@ -2589,9 +2586,9 @@ function renderAdminApplicationsFromArray(){
 // Stays visible (faded + strikethrough) until you refresh the page.
 function markApplicationDone(index, checkbox){
   try {
-    if (index >= 0 && index < jobApplications.length) {
-      jobApplications.splice(index, 1);
-      if (typeof saveData === 'function') saveData('jobApplications', jobApplications);
+    if (index >= 0 && index < window.jobApplications.length) {
+      window.jobApplications.splice(index, 1);
+      if (typeof saveData === 'function') saveData('jobApplications', window.jobApplications);
     }
   } catch(e) {}
   var row = checkbox && checkbox.closest ? checkbox.closest('[id^="app-row-"]') : null;
@@ -2601,7 +2598,7 @@ function markApplicationDone(index, checkbox){
     row.style.background = 'rgba(122,158,126,0.10)';
   }
   var cnt = document.getElementById('adminAppsCount');
-  if (cnt) cnt.textContent = jobApplications.length;
+  if (cnt) cnt.textContent = window.jobApplications.length;
 }
 
 document.getElementById('applyModal').addEventListener('click', function(e){
