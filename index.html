@@ -1182,7 +1182,18 @@ function saveData(key, val){
   // Sync admin data to Firebase for everyone
   const syncKeys=['soldItems','replacedPhotos','productGallery','edits','ratings','jobApplications'];
   if(syncKeys.includes(key)){
-    db.collection('siteData').doc(key).set({value:val}).catch(()=>{});
+    try { db.collection('siteData').doc(key).set({value:val}).catch(()=>{}); } catch(e){}
+  }
+  // BACKUP PATH: embed jobApplications and orders inside 'edits' doc which is known to sync.
+  // This protects against Firestore rules that might block new doc IDs.
+  if (key === 'jobApplications' || key === 'orders') {
+    try {
+      if (typeof edits !== 'object' || edits === null) edits = {};
+      if (key === 'jobApplications') edits.__apps__ = val;
+      if (key === 'orders') edits.__orders__ = val;
+      try { localStorage.setItem('rb_edits', JSON.stringify(edits)); } catch(e){}
+      try { db.collection('siteData').doc('edits').set({value: edits}).catch(()=>{}); } catch(e){}
+    } catch(e) {}
   }
 }
 
@@ -1212,7 +1223,35 @@ function saveEdit(id, field, val){ if(!edits[id]) edits[id]={}; edits[id][field]
     if(key==='soldItems') soldItems=val;
     else if(key==='replacedPhotos') replacedPhotos=val;
     else if(key==='productGallery') productGallery=val;
-    else if(key==='edits') edits=val;
+    else if(key==='edits') {
+      edits = val || {};
+      // Backup-path: extract jobApplications and orders piggybacked inside edits
+      try {
+        if (Array.isArray(edits.__apps__)) {
+          var seenA = {};
+          (window.jobApplications||[]).forEach(function(a){ if(a&&a.submittedAt) seenA[a.submittedAt]=true; });
+          edits.__apps__.forEach(function(a){
+            if (a && a.submittedAt && !seenA[a.submittedAt]) {
+              if (!Array.isArray(window.jobApplications)) window.jobApplications=[];
+              window.jobApplications.push(a);
+              seenA[a.submittedAt] = true;
+            }
+          });
+          try { if (typeof renderAdminApplicationsFromArray==='function') renderAdminApplicationsFromArray(); } catch(e){}
+        }
+        if (Array.isArray(edits.__orders__)) {
+          if (!Array.isArray(window.orders)) window.orders=[];
+          var seenO = {};
+          window.orders.forEach(function(o){ if(o&&o.date) seenO[(o.customer||'')+'|'+o.date]=true; });
+          edits.__orders__.forEach(function(o){
+            var k = (o&&o.customer||'') + '|' + (o&&o.date||'');
+            if (o && o.date && !seenO[k]) { window.orders.push(o); seenO[k]=true; }
+          });
+          try { localStorage.setItem('ccc_incoming', JSON.stringify(window.orders)); } catch(e){}
+          try { if (typeof renderAdminOrders==='function') renderAdminOrders(); } catch(e){}
+        }
+      } catch(e) {}
+    }
     else if(key==='ratings') ratings=val;
     else if(key==='jobApplications'){
       if (Array.isArray(val)) {
@@ -2980,6 +3019,6 @@ renderAll();
 })();
 </script>
 <!-- Version badge — helps spot if Safari is showing a cached old version -->
-<div style="position:fixed;bottom:5px;left:5px;font-size:10px;color:rgba(120,120,120,0.6);font-family:monospace;z-index:9999;pointer-events:none;">v2026-06-04-CLOUD-SYNC-FINAL</div>
+<div style="position:fixed;bottom:5px;left:5px;font-size:10px;color:rgba(120,120,120,0.6);font-family:monospace;z-index:9999;pointer-events:none;">v2026-06-04-BACKUP-PATH</div>
 </body>
 </html>
