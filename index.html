@@ -7,6 +7,7 @@
 <link href="https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400;0,700;0,900;1,400&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
 <script src="https://www.paypal.com/sdk/js?client-id=ATRAgk_FkIS-Oy4Xx26njS7pnDeg0eoDlOlcS3b9ykU4tk8OQhh4ybvtawBiTZwxXgErhHd-VwYZLEAf&currency=USD&enable-funding=venmo&disable-funding=paylater,card"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-firestore-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.0/firebase-storage-compat.js"></script>
 <script>
@@ -21,6 +22,10 @@ firebase.initializeApp({
 });
 const db=firebase.firestore();
 const storage=firebase.storage();
+// Sign in anonymously so Firestore rules that require auth still allow writes
+try {
+  firebase.auth().signInAnonymously().catch(function(e){ console.warn('anon auth failed', e); });
+} catch(e) { console.warn('auth init failed', e); }
 </script>
 <style>
 :root{--cream:#fdf6ee;--warm:#fffaf4;--blush:#f2b8a0;--tc:#c96a3e;--rust:#a84a25;--sage:#7a9e7e;--gold:#d4a843;--dark:#2a1a10;--mid:#6b4c35;}
@@ -3019,6 +3024,6 @@ renderAll();
 })();
 </script>
 <!-- Version badge — helps spot if Safari is showing a cached old version -->
-<div style="position:fixed;bottom:5px;left:5px;font-size:10px;color:rgba(120,120,120,0.6);font-family:monospace;z-index:9999;pointer-events:none;">v2026-06-04-BACKUP-PATH</div>
+<div style="position:fixed;bottom:5px;left:5px;font-size:10px;color:rgba(120,120,120,0.6);font-family:monospace;z-index:9999;pointer-events:none;">v2026-06-04-AUTH-FIX</div>
 </body>
 </html>
