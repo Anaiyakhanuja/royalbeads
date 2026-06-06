@@ -1219,6 +1219,27 @@ let ratings = loadData('ratings', {});
 
 // Sold items — persists after purchase
 let soldItems = loadData('soldItems', {});
+// ════════ ONE-TIME WIPE of stale sold-out marks ════════
+// Clears any items wrongly marked sold from the old cart bug.
+// Only runs once per device (flag in localStorage) — future sold marks (from actual payments) work normally.
+(function(){
+  try {
+    if (!localStorage.getItem('rb_soldWipeDone_v2026_06_06')) {
+      soldItems = {};
+      try { localStorage.setItem('rb_soldItems', JSON.stringify({})); } catch(e){}
+      // Sync the empty state to Firebase so ALL devices see the wipe
+      setTimeout(function(){
+        try {
+          if (typeof db !== 'undefined') {
+            db.collection('siteData').doc('soldItems').set({value: {}}).catch(function(){});
+          }
+        } catch(e){}
+        try { localStorage.setItem('rb_soldWipeDone_v2026_06_06', '1'); } catch(e){}
+        if (typeof renderAll === 'function') try { renderAll(); } catch(e){}
+      }, 1500);
+    }
+  } catch(e){}
+})();
 
 // Replaced photos — admin uploads new bracelet photo to restock
 let replacedPhotos = loadData('replacedPhotos', {});
@@ -3115,6 +3136,6 @@ renderAll();
 })();
 </script>
 <!-- Version badge — helps spot if Safari is showing a cached old version -->
-<div style="position:fixed;bottom:5px;left:5px;font-size:10px;color:rgba(120,120,120,0.6);font-family:monospace;z-index:9999;pointer-events:none;">v2026-06-06-PRODUCTS</div>
+<div style="position:fixed;bottom:5px;left:5px;font-size:10px;color:rgba(120,120,120,0.6);font-family:monospace;z-index:9999;pointer-events:none;">v2026-06-06-CLEAN</div>
 </body>
 </html>
