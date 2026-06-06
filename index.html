@@ -2194,6 +2194,42 @@ let isAdminMode=false;
 
 function openAdminModal(){
   if(isAdminMode){
+    // DIRECT FETCH: pull latest applications + orders from Firestore right now,
+    // don't wait for the realtime subscription. This guarantees fresh data on every admin open.
+    try {
+      if (typeof db !== 'undefined') {
+        db.collection('siteData').doc('jobApplications').get().then(function(snap){
+          if (snap.exists && Array.isArray(snap.data().value)) {
+            var fromCloud = snap.data().value;
+            if (!Array.isArray(window.jobApplications)) window.jobApplications = [];
+            var seenJ = {};
+            window.jobApplications.forEach(function(a){ if(a&&a.submittedAt) seenJ[a.submittedAt]=true; });
+            fromCloud.forEach(function(a){
+              if (a && a.submittedAt && !seenJ[a.submittedAt]) {
+                window.jobApplications.push(a);
+                seenJ[a.submittedAt] = true;
+              }
+            });
+            try { if (typeof renderAdminApplicationsFromArray==='function') renderAdminApplicationsFromArray(); } catch(e){}
+          }
+        }).catch(function(e){ console.warn('direct apps fetch failed', e); });
+        db.collection('siteData').doc('orders').get().then(function(snap){
+          if (snap.exists && Array.isArray(snap.data().value)) {
+            var fromCloud = snap.data().value;
+            if (!Array.isArray(window.orders)) window.orders = [];
+            var seenO = {};
+            window.orders.forEach(function(o){ if(o&&o.date) seenO[(o.customer||'')+'|'+o.date]=true; });
+            fromCloud.forEach(function(o){
+              var k = (o&&o.customer||'') + '|' + (o&&o.date||'');
+              if (o && o.date && !seenO[k]) { window.orders.push(o); seenO[k]=true; }
+            });
+            try { localStorage.setItem('ccc_incoming', JSON.stringify(window.orders)); } catch(e){}
+            try { if (typeof renderAdminOrders==='function') renderAdminOrders(); } catch(e){}
+          }
+        }).catch(function(e){ console.warn('direct orders fetch failed', e); });
+      }
+    } catch(e) { console.warn('direct fetch failed', e); }
+
     var addr = document.getElementById('adminAddrInput');
     if (addr && typeof pickupAddress === 'string') addr.value = (pickupAddress==='Address set by owner'?'':pickupAddress);
     var _ahd = document.getElementById('adminHiringDesc');
@@ -3024,6 +3060,6 @@ renderAll();
 })();
 </script>
 <!-- Version badge — helps spot if Safari is showing a cached old version -->
-<div style="position:fixed;bottom:5px;left:5px;font-size:10px;color:rgba(120,120,120,0.6);font-family:monospace;z-index:9999;pointer-events:none;">v2026-06-04-AUTH-FIX</div>
+<div style="position:fixed;bottom:5px;left:5px;font-size:10px;color:rgba(120,120,120,0.6);font-family:monospace;z-index:9999;pointer-events:none;">v2026-06-05-DIRECT-FETCH</div>
 </body>
 </html>
