@@ -1303,10 +1303,10 @@ function braceletCard(item){
   const stars = ratings[item.id]||0;
   const inCart = cart.some(c=>c.id===item.id);
   const isSold = soldItems[item.id]===true;
-  const showSold = isSold || inCart;
-  const cardClass = showSold?'prod-card sold'+(inCart&&!isSold?' in-cart':''):'prod-card';
-  const btnClass = isSold?'add-cart-btn':inCart?'add-cart-btn added':'add-cart-btn';
-  const btnLabel = isSold?'Sold Out':inCart?'✕ Remove':'🎨 Add';
+  // Items in cart are STILL available to other shoppers — only mark sold after payment.
+  const cardClass = isSold ? 'prod-card sold' : (inCart ? 'prod-card in-cart' : 'prod-card');
+  const btnClass = isSold ? 'add-cart-btn sold' : (inCart ? 'add-cart-btn added' : 'add-cart-btn');
+  const btnLabel = isSold ? 'Sold Out' : (inCart ? '✕ Remove' : '🎨 Add');
   const currentImg = replacedPhotos[item.id] || item.img || '';
   const hasImg = currentImg ? true : false;
   const safeNm = nm.replace(/'/g,"&#39;").replace(/"/g,"&quot;");
@@ -3060,6 +3060,6 @@ renderAll();
 })();
 </script>
 <!-- Version badge — helps spot if Safari is showing a cached old version -->
-<div style="position:fixed;bottom:5px;left:5px;font-size:10px;color:rgba(120,120,120,0.6);font-family:monospace;z-index:9999;pointer-events:none;">v2026-06-05-DIRECT-FETCH</div>
+<div style="position:fixed;bottom:5px;left:5px;font-size:10px;color:rgba(120,120,120,0.6);font-family:monospace;z-index:9999;pointer-events:none;">v2026-06-05-SOLD-FIX</div>
 </body>
 </html>
