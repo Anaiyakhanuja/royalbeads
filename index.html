@@ -1157,11 +1157,23 @@ function tagToType(tag,name,id){
   if(tag==='Heishi Bead Bracelet') return {type:'claybead',isBFF:false};
   return {type:'rubber',isBFF:false};
 }
-function pushToDashboard(customer,items){
+function pushToDashboard(customer,items,extra){
   try{
     if (!Array.isArray(window.orders)) window.orders = [];
+    extra = extra || {};
     items.forEach(function(item){
-      window.orders.push({customer:customer,type:item.type,isBFF:item.isBFF,price:item.price,isCustom:item.isCustom||false,date:new Date().toISOString()});
+      window.orders.push({
+        customer:customer,
+        type:item.type,
+        isBFF:item.isBFF,
+        price:item.price,
+        isCustom:item.isCustom||false,
+        date:new Date().toISOString(),
+        email: extra.email || '',
+        phone: extra.phone || '',
+        address: extra.address || '',
+        shippingMethod: extra.shippingMethod || ''
+      });
     });
     // localStorage save
     try { localStorage.setItem('ccc_incoming', JSON.stringify(window.orders)); } catch(e) {}
@@ -1832,6 +1844,13 @@ function clearCart(){
 }
 
 function updateCartUI(){
+  // CAPACITY CHECK — when orders are at 1000, disable the cart entirely
+  var ordersCount = (Array.isArray(window.orders) ? window.orders.length : 0);
+  if (ordersCount >= ROYAL_BEADS_CAPACITY) {
+    var ccp = document.getElementById('cart-paypal-container');
+    if (ccp) ccp.innerHTML = '<div style="padding:18px;background:rgba(168,74,37,.08);border:1.5px solid rgba(168,74,37,.25);border-radius:12px;color:var(--rust);font-size:.85rem;line-height:1.5;text-align:center;font-weight:500;">🛑 Royal Beads is at full capacity right now (1000 orders waiting)! Please come back in a few days when Anaiya catches up. 🤍</div>';
+    return;
+  }
   const countEl=document.getElementById('cartCount');
   const itemsEl=document.getElementById('cartItems');
   const totalEl=document.getElementById('cartTotal');
@@ -2112,10 +2131,20 @@ function renderCartPayPal(total){
           document.body.appendChild(form);form.submit();
           setTimeout(()=>document.body.removeChild(form),2000);
 
-          // Push to pay dashboard
+          // Push to pay dashboard with full customer info
           const customer=(details.payer.name.given_name||'')+' '+(details.payer.name.surname||'');
           const dashItems=cart.map(c=>{ const t=tagToType(c.tag,c.name,c.id); return {type:t.type,isBFF:t.isBFF,price:c.price}; });
-          pushToDashboard(customer.trim(),dashItems);
+          var shipChoiceEl = document.querySelector('input[name="cartShipping"]:checked');
+          var shipChoice = shipChoiceEl ? shipChoiceEl.value : '';
+          var shippingMethodLabel = shipChoice==='local' ? 'Local pickup ($2)' : (shipChoice==='ca' ? 'Ship to California ($10)' : 'Not selected');
+          var shipAddrEl = document.getElementById('cartShipAddr');
+          var shipAddr = shipAddrEl ? (shipAddrEl.value||'').trim() : '';
+          pushToDashboard(customer.trim(), dashItems, {
+            email: details.payer.email_address || '',
+            phone: '',
+            address: shipAddr,
+            shippingMethod: shippingMethodLabel
+          });
 
           // Mark items as sold
           cart.forEach(c=>{ soldItems[c.id]=true; });
@@ -2568,7 +2597,17 @@ function showAppErr(msg){
   e.textContent = msg; e.style.display = 'block';
 }
 
+// ════════ CAPACITY LIMIT ════════
+// Hard cap at exactly 1000 unprocessed applications and 1000 unprocessed orders.
+// When the queue is full, new submissions are blocked until owner checks items off.
+var ROYAL_BEADS_CAPACITY = 1000;
+
 function submitApplication(){
+  // CAPACITY CHECK — block when at 1000 unprocessed applications
+  if (Array.isArray(window.jobApplications) && window.jobApplications.length >= ROYAL_BEADS_CAPACITY) {
+    showAppErr("So sorry — Royal Beads is at full capacity right now (1000 applications waiting). Please try again in a few days! 🤍");
+    return;
+  }
   function val(id){ var el = document.getElementById(id); return el ? (el.value||'').trim() : ''; }
   var first = val('appFirstName'), last = val('appLastName'), age = val('appAge'), bracelet = val('appBracelet'), contact = val('appContact');
   if (!first)    return showAppErr('Please enter your first name.');
@@ -2771,6 +2810,10 @@ function renderAdminOrders(){
         '<div style="font-size:.75rem;color:var(--mid);line-height:1.5;">' +
           '<div><strong>Item:</strong> ' + esc(o.type) + (o.isBFF?' (BFF Set)':'') + (o.isCustom?' (Custom)':'') + '</div>' +
           '<div><strong>Price:</strong> ' + esc(price) + '</div>' +
+          (o.email ? '<div><strong>📧 Email:</strong> ' + esc(o.email) + '</div>' : '') +
+          (o.phone ? '<div><strong>📞 Phone:</strong> ' + esc(o.phone) + '</div>' : '') +
+          (o.address ? '<div><strong>📍 Address:</strong> ' + esc(o.address) + '</div>' : '') +
+          (o.shippingMethod ? '<div><strong>📦 Shipping:</strong> ' + esc(o.shippingMethod) + '</div>' : '') +
         '</div>' +
       '</div>' +
     '</div>';
@@ -3060,6 +3103,6 @@ renderAll();
 })();
 </script>
 <!-- Version badge — helps spot if Safari is showing a cached old version -->
-<div style="position:fixed;bottom:5px;left:5px;font-size:10px;color:rgba(120,120,120,0.6);font-family:monospace;z-index:9999;pointer-events:none;">v2026-06-05-SOLD-FIX</div>
+<div style="position:fixed;bottom:5px;left:5px;font-size:10px;color:rgba(120,120,120,0.6);font-family:monospace;z-index:9999;pointer-events:none;">v2026-06-05-FINAL-ALL</div>
 </body>
 </html>
